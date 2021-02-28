@@ -5,7 +5,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from .models import Strategy, Exchange
-from .serializers import UserSerializer, UserSerializerWithToken, StrategySerializer
+from .serializers import UserSerializer, UserSerializerWithToken, StrategySerializer, ExchangeSerializer
 
 
 @api_view(['GET'])
