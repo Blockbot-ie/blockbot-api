@@ -1,10 +1,11 @@
 from django.http import HttpResponseRedirect
 from django.contrib.auth.models import User
-from rest_framework import permissions, status
+from rest_framework import permissions, status, generics, mixins
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .serializers import UserSerializer, UserSerializerWithToken
+from .models import Strategy, Exchange
+from .serializers import UserSerializer, UserSerializerWithToken, StrategySerializer
 
 
 @api_view(['GET'])
@@ -12,7 +13,6 @@ def current_user(request):
     """
     Determine the current user by their token, and return their data
     """
-    
     serializer = UserSerializer(request.user)
     return Response(serializer.data)
 
@@ -31,3 +31,32 @@ class UserList(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class StrategyList(mixins.ListModelMixin,
+                  mixins.CreateModelMixin,
+                  generics.GenericAPIView):
+
+    permission_classes = (permissions.AllowAny, )
+    queryset = Strategy.objects.all()
+    serializer_class = StrategySerializer
+
+    def get(self, request, *args, **kwargs):
+        print(request)
+        return self.list(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
+
+class ExchangeList(mixins.ListModelMixin,
+                  mixins.CreateModelMixin,
+                  generics.GenericAPIView):
+
+    permission_classes = (permissions.AllowAny, )
+    queryset = Exchange.objects.all()
+    serializer_class = ExchangeSerializer
+
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)

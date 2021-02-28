@@ -1,14 +1,12 @@
 from rest_framework import serializers
 from rest_framework_jwt.settings import api_settings
-from django.contrib.auth.models import User
-
+from bb.models import User, Strategy, Exchange
 
 class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
         fields = ('username',)
-
 
 class UserSerializerWithToken(serializers.ModelSerializer):
 
@@ -34,3 +32,15 @@ class UserSerializerWithToken(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('token', 'username', 'password')
+
+class StrategySerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Strategy
+        fields = ('strategy_id', 'name',)
+
+class ExchangeSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Exchange
+        fields = ('exchange_id', 'display_name',)

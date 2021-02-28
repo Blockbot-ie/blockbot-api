@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 """
 
 from pathlib import Path
+import datetime as dt
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -89,7 +90,10 @@ CORS_ORIGIN_WHITELIST = (
 )
 
 JWT_AUTH = {
-    'JWT_RESPONSE_PAYLOAD_HANDLER': 'blockbotie_api_project.utils.my_jwt_response_handler'
+    'JWT_RESPONSE_PAYLOAD_HANDLER': 'blockbotie_api_project.utils.my_jwt_response_handler',
+    'JWT_EXPIRATION_DELTA': dt.timedelta(seconds=900),
+    'JWT_ALLOW_REFRESH': True,
+    'JWT_REFRESH_EXPIRATION_DELTA': dt.timedelta(days=7),
 }
 
 # Database
@@ -97,12 +101,20 @@ JWT_AUTH = {
 
 DATABASES = {
     'default': {
-
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'blockbot_dev',
+        'USER': 'blockbot_admin',
+        'PASSWORD': '6U2nn5KurSiNz3gw4kxm',
+        'HOST': 'blockbot-db.cvp1g4qet0xu.eu-west-1.rds.amazonaws.com',
+        'PORT': '5432'
+    }
 }
 
 
 # Password validation
 # https://docs.djangoproject.com/en/3.1/ref/settings/#auth-password-validators
+
+AUTH_USER_MODEL = 'bb.User'
 
 AUTH_PASSWORD_VALIDATORS = [
     {
