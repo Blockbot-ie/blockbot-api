@@ -7,14 +7,15 @@ from rest_framework.views import APIView
 from .models import Strategy, Exchange
 from .serializers import UserSerializer, UserSerializerWithToken, StrategySerializer, ExchangeSerializer
 
-
-@api_view(['GET'])
-def current_user(request):
+class UserAPI(generics.RetrieveAPIView):
     """
     Determine the current user by their token, and return their data
     """
-    serializer = UserSerializer(request.user)
-    return Response(serializer.data)
+    permission_classes = (permissions.IsAuthenticated, )
+    serializer_class = UserSerializer
+
+    def get_object(self):
+        return self.request.user
 
 
 class UserList(APIView):
