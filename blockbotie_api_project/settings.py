@@ -76,26 +76,13 @@ TEMPLATES = [
 WSGI_APPLICATION = 'blockbotie_api_project.wsgi.application'
 
 REST_FRAMEWORK = {
-    'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',
-    ),
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.BasicAuthentication',
-    ),
+    'DEFAULT_AUTHENTICATION_CLASSES': ('knox.auth.TokenAuthentication',)
 }
 
 CORS_ORIGIN_WHITELIST = (
     'http://localhost:3000',
 )
 
-JWT_AUTH = {
-    'JWT_RESPONSE_PAYLOAD_HANDLER': 'blockbotie_api_project.utils.my_jwt_response_handler',
-    'JWT_EXPIRATION_DELTA': dt.timedelta(seconds=900),
-    'JWT_ALLOW_REFRESH': True,
-    'JWT_REFRESH_EXPIRATION_DELTA': dt.timedelta(days=7),
-}
 
 # Database
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
