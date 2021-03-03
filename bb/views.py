@@ -4,7 +4,7 @@ from rest_framework import permissions, status, generics, mixins
 from rest_framework.response import Response
 from knox.models import AuthToken
 from .models import Strategy, Exchange
-from .serializers import UserSerializer, RegisterSerializer, LoginSerializer, StrategySerializer, ExchangeSerializer
+from .serializers import UserSerializer, RegisterSerializer, LoginSerializer, StrategySerializer, ExchangeSerializer, ConnectExchangeSerializer
 
 # Register API
 class RegisterAPI(generics.GenericAPIView):
@@ -15,13 +15,15 @@ class RegisterAPI(generics.GenericAPIView):
     serializer_class = RegisterSerializer
 
     def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.save()
-        return Response({
-            "user": UserSerializer(user, context=self.get_serializer_context()).data,
-            "token": AuthToken.objects.create(user)[1]
-        })
+        try:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            user = serializer.save()
+        except Exception as error:
+            return Response({
+                "user": UserSerializer(user, context=self.get_serializer_context()).data,
+                "token": AuthToken.objects.create(user)[1]
+            })
 
 # Login API
 class LoginAPI(generics.GenericAPIView):
@@ -59,7 +61,6 @@ class StrategyList(mixins.ListModelMixin,
     serializer_class = StrategySerializer
 
     def get(self, request, *args, **kwargs):
-        print(request)
         return self.list(request, *args, **kwargs)
 
 class ExchangeList(mixins.ListModelMixin,
@@ -72,3 +73,25 @@ class ExchangeList(mixins.ListModelMixin,
 
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
+
+class ConnectExchange(mixins.ListModelMixin,
+                  mixins.CreateModelMixin,
+                  generics.GenericAPIView):
+
+    permission_classes = (permissions.AllowAny, )
+    serializer_class = ConnectExchangeSerializer
+
+    def post(self, request, *args, **kwargs):
+        # request.data._mutable = True
+        request.data['user'] = self.request.user
+        # request.data._mutable = True
+        try:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            content = {'Success': 'Exchange connection successful'}
+            return Response(content, status=status.HTTP_201_CREATED)
+        except AttributeError as e:
+            content = {'Error': e}
+            print(e)
+            return Response(content, status=status.HTTP_403_FORBIDDEN)
