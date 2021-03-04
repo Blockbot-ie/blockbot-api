@@ -49,30 +49,6 @@ class ConnectExchangeSerializer(serializers.ModelSerializer):
     class Meta:
         model = User_Exchange_Account
         fields = ('api_key', 'api_secret', 'exchange', 'user', )
-
-    def validate(self, data):
-        print(data)
-        exchange_object = Exchange.objects.filter(exchange_id=data['exchange'].exchange_id).first()
-        exchange_class = getattr(ccxt, exchange_object.name)
-        exchange = exchange_class({
-            'apiKey': data['api_key'],
-            'secret': data['api_secret'],
-            'timeout': 30000,
-            'enableRateLimit': True
-        })
-        try:
-            exchange.fetch_balance()
-            if exchange:
-                connect_exchange = User_Exchange_Account()
-                connect_exchange.api_key = data['api_key']
-                connect_exchange.api_secret = data['api_secret']
-                connect_exchange.user = data['user'].user_id
-                connect_exchange.exchange = exchange_object
-                return connect_exchange
-        except AttributeError as error:
-            print(error)
-            return JsonResponse(error.message_dict, safe=False)
-        raise serializers.ValidationError("Incorrect Credentials")
         
 
         

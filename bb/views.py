@@ -1,9 +1,9 @@
 from django.http import HttpResponseRedirect
-from django.contrib.auth.models import User
 from rest_framework import permissions, status, generics, mixins
 from rest_framework.response import Response
+import ccxt
 from knox.models import AuthToken
-from .models import Strategy, Exchange
+from .models import Strategy, Exchange, User
 from .serializers import UserSerializer, RegisterSerializer, LoginSerializer, StrategySerializer, ExchangeSerializer, ConnectExchangeSerializer
 
 # Register API
@@ -16,14 +16,16 @@ class RegisterAPI(generics.GenericAPIView):
 
     def post(self, request, *args, **kwargs):
         try:
+            print(request.data)
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             user = serializer.save()
         except Exception as error:
-            return Response({
-                "user": UserSerializer(user, context=self.get_serializer_context()).data,
-                "token": AuthToken.objects.create(user)[1]
-            })
+            print(error)
+        return Response({
+            "user": UserSerializer(user, context=self.get_serializer_context()).data,
+            "token": AuthToken.objects.create(user)[1]
+        })
 
 # Login API
 class LoginAPI(generics.GenericAPIView):
@@ -83,12 +85,28 @@ class ConnectExchange(mixins.ListModelMixin,
 
     def post(self, request, *args, **kwargs):
         # request.data._mutable = True
-        request.data['user'] = self.request.user
-        # request.data._mutable = True
+        # user = User.objects.filter(user_id=self.request.user.user_id).first()
+        exchange_object = Exchange.objects.filter(exchange_id=request.data['exchange']).first()
         try:
-            serializer = self.get_serializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
+            exchange_id = exchange_object.name
+            exchange_class = getattr(ccxt, exchange_id)
+            exchange = exchange_class({
+                'apiKey': request.data['api_key'],
+                'secret': request.data['api_secret'],
+                'timeout': 30000,
+                'enableRateLimit': True,
+            })
+            exchange.fetch_balance()
+        except AttributeError as error:
+            print(error)
+            content = {'Error': error}
+            return Response(content, status=status.HTTP_403_FORBIDDEN)
+
+        request.data['user'] = self.request.user.user_id
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        try:
             content = {'Success': 'Exchange connection successful'}
             return Response(content, status=status.HTTP_201_CREATED)
         except AttributeError as e:
