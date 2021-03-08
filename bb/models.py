@@ -37,6 +37,7 @@ class User_Exchange_Account(models.Model):
     strategy = models.ForeignKey(Strategy, null=True, on_delete=models.SET_NULL)
     api_key = encrypt(models.CharField(_('API Key'), max_length=255, blank=True))
     api_secret = encrypt(models.CharField(_('API Secret'), max_length=255, blank=True))
+    api_password = encrypt(models.CharField(_('API Password'), max_length=255, blank=True))
     sub_account_name = models.CharField(_('Sub-account Name'), max_length=255, null=True, blank=True)
     is_active = models.BooleanField(
         _('active'),

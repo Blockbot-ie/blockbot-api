@@ -1,9 +1,10 @@
 from django.http import HttpResponseRedirect
+from django.shortcuts import get_list_or_404
 from rest_framework import permissions, status, generics, mixins
 from rest_framework.response import Response
 import ccxt
 from knox.models import AuthToken
-from .models import Strategy, Exchange, User
+from .models import Strategy, Exchange, User, User_Exchange_Account
 from .serializers import UserSerializer, RegisterSerializer, LoginSerializer, StrategySerializer, ExchangeSerializer, ConnectExchangeSerializer
 
 # Register API
@@ -76,16 +77,23 @@ class ExchangeList(mixins.ListModelMixin,
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
 
-class ConnectExchange(mixins.ListModelMixin,
+class ConnectExchange(
                   mixins.CreateModelMixin,
-                  generics.GenericAPIView):
+                  generics.ListAPIView):
 
     permission_classes = (permissions.AllowAny, )
     serializer_class = ConnectExchangeSerializer
+    
+    def get_queryset(self):
+        queryset = User_Exchange_Account.objects.all()
+        user_id = self.request.user.user_id
+        print(user_id)
+        if user_id is not None:
+            queryset = queryset.filter(user_id=user_id)
+            return queryset
+        return queryset.none()
 
     def post(self, request, *args, **kwargs):
-        # request.data._mutable = True
-        # user = User.objects.filter(user_id=self.request.user.user_id).first()
         exchange_object = Exchange.objects.filter(exchange_id=request.data['exchange']).first()
         try:
             exchange_id = exchange_object.name
@@ -93,14 +101,15 @@ class ConnectExchange(mixins.ListModelMixin,
             exchange = exchange_class({
                 'apiKey': request.data['api_key'],
                 'secret': request.data['api_secret'],
+                'password': request.data['api_password'],
                 'timeout': 30000,
                 'enableRateLimit': True,
             })
             exchange.fetch_balance()
-        except AttributeError as error:
+        except Exception as error:
             print(error)
-            content = {'Error': error}
-            return Response(content, status=status.HTTP_403_FORBIDDEN)
+            content = {'Error': str(error)}
+            return Response(content, status=status.HTTP_400_BAD_REQUEST)
 
         request.data['user'] = self.request.user.user_id
         serializer = self.get_serializer(data=request.data)
@@ -109,7 +118,7 @@ class ConnectExchange(mixins.ListModelMixin,
         try:
             content = {'Success': 'Exchange connection successful'}
             return Response(content, status=status.HTTP_201_CREATED)
-        except AttributeError as e:
-            content = {'Error': e}
-            print(e)
-            return Response(content, status=status.HTTP_403_FORBIDDEN)
+        except Exception as error:
+            content = {'Error': str(error)}
+            print(error)
+            return Response(content, status=status.HTTP_400_BAD_REQUEST)
