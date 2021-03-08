@@ -4,8 +4,8 @@ from rest_framework import permissions, status, generics, mixins
 from rest_framework.response import Response
 import ccxt
 from knox.models import AuthToken
-from .models import Strategy, Exchange, User, User_Exchange_Account
-from .serializers import UserSerializer, RegisterSerializer, LoginSerializer, StrategySerializer, ExchangeSerializer, ConnectExchangeSerializer
+from .models import Strategy, Exchange, User, User_Exchange_Account, User_Strategy_Pair, Strategy_Supported_Pairs
+from .serializers import UserSerializer, RegisterSerializer, LoginSerializer, StrategySerializer, ExchangeSerializer, ConnectExchangeSerializer, ConnectStrategySerializer, StrategySupportedPairsSerializer
 
 # Register API
 class RegisterAPI(generics.GenericAPIView):
@@ -81,7 +81,7 @@ class ConnectExchange(
                   mixins.CreateModelMixin,
                   generics.ListAPIView):
 
-    permission_classes = (permissions.AllowAny, )
+    permission_classes = (permissions.IsAuthenticated, )
     serializer_class = ConnectExchangeSerializer
     
     def get_queryset(self):
@@ -122,3 +122,39 @@ class ConnectExchange(
             content = {'Error': str(error)}
             print(error)
             return Response(content, status=status.HTTP_400_BAD_REQUEST)
+
+class ConnectStrategy(mixins.CreateModelMixin,
+                    generics.ListAPIView):
+
+    permission_classes = (permissions.IsAuthenticated, )
+    serializer_class = ConnectStrategySerializer
+
+    def get_queryset(self):
+        queryset = User_Strategy_Pair.objects.all()
+        user_id = self.request.user.user_id
+        if user_id is not None:
+            queryset = queryset.filter(user_id=user_id)
+            return queryset
+        return queryset.none()
+
+    def post(self, request, *args, **kwargs):
+        request.data['user'] = self.request.user.user_id
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        try:
+            content = {'Success': 'Strategy connection successful'}
+            return Response(content, status=status.HTTP_201_CREATED)
+        except Exception as error:
+            content = {'Error': str(error)}
+            print(error)
+            return Response(content, status=status.HTTP_400_BAD_REQUEST)
+
+class StrategyPairs(mixins.CreateModelMixin,
+                    generics.ListAPIView):
+
+    permission_classes = (permissions.IsAuthenticated, )
+    serializer_class = StrategySupportedPairsSerializer
+
+    def get_queryset(self):
+        return Strategy_Supported_Pairs.objects.all()

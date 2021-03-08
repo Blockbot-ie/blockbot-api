@@ -2,7 +2,7 @@ from rest_framework import serializers
 from rest_framework_jwt.settings import api_settings
 from django.contrib.auth import authenticate
 from django.http import HttpResponseRedirect, JsonResponse
-from bb.models import User, Strategy, Exchange, User_Exchange_Account
+from bb.models import User, Strategy, Exchange, User_Exchange_Account, User_Strategy_Pair, Strategy_Supported_Pairs
 import ccxt
 
 # User Serializer
@@ -48,7 +48,15 @@ class ExchangeSerializer(serializers.ModelSerializer):
 class ConnectExchangeSerializer(serializers.ModelSerializer):
     class Meta:
         model = User_Exchange_Account
-        fields = ('api_key', 'api_secret', 'exchange', 'user', )
-        
+        fields = ('name', 'api_key', 'api_secret', 'exchange', 'user', )
 
+class ConnectStrategySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User_Strategy_Pair
+        fields = ('strategy', 'user_exchange_account', 'pair', 'initial_first_symbol_balance', 'initial_second_symbol_balance', 'current_currency', 'current_currency_balance',)
         
+        
+class StrategySupportedPairsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Strategy_Supported_Pairs
+        fields = ('strategy', 'pair')

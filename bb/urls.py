@@ -1,5 +1,5 @@
 from django.urls import path, include
-from .views import RegisterAPI, LoginAPI, UserAPI, StrategyList, ExchangeList, ConnectExchange
+from .views import RegisterAPI, LoginAPI, UserAPI, StrategyList, ExchangeList, ConnectExchange, ConnectStrategy, StrategyPairs
 from knox import views as knox_views
 
 urlpatterns = [
@@ -10,5 +10,7 @@ urlpatterns = [
     path('auth/logout', knox_views.LogoutView.as_view(), name='knox_logout'),
     path('strategies/', StrategyList.as_view()),
     path('exchanges/', ExchangeList.as_view()),
-    path('connect-exchange', ConnectExchange.as_view())
+    path('connect-exchange', ConnectExchange.as_view()),
+    path('connect-strategies', ConnectStrategy.as_view()),
+    path('strategy_pairs', StrategyPairs.as_view())
     ]

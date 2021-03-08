@@ -32,6 +32,7 @@ class Exchange(models.Model):
     
 class User_Exchange_Account(models.Model):
     user_exchange_account_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(_('Exchange Account Name'), max_length=255, blank=True)
     user = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
     exchange = models.ForeignKey(Exchange, null=True, on_delete=models.SET_NULL)
     strategy = models.ForeignKey(Strategy, null=True, on_delete=models.SET_NULL)
@@ -46,20 +47,22 @@ class User_Exchange_Account(models.Model):
     modified_on = models.DateTimeField(_('modified_on'), default=timezone.now)
     created_on = models.DateTimeField(_('created_on'), default=timezone.now)
 
-# class User_Strategy_Pair(models.Model):
-#     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-#     user_strategy_account = models.ForeignKey(User_Strategy_Account, null=True, on_delete=models.SET_NULL)
-#     pair = models.CharField(_('Pair'), max_length=50, blank=True)
-#     initial_first_symbol_balance = models.FloatField(_('Initial First Symbol Balance'), null=True, blank=True)
-#     initial_second_symbol_balance = models.FloatField(_('Initial First Symbol Balance'), null=True, blank=True)
-#     current_currency = models.CharField(_('Current Currency'), max_length=50, blank=True)
-#     current_currency_balance = models.FloatField(_('Current Currency Balance'), null=True, blank=True)
-#     is_active = models.BooleanField(
-#         _('active'),
-#         default=True,
-#     )
-#     modified_on = models.DateTimeField(_('modified_on'), default=timezone.now)
-#     created_on = models.DateTimeField(_('created_on'), default=timezone.now)
+class User_Strategy_Pair(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
+    strategy = models.ForeignKey(Strategy, null=True, on_delete=models.SET_NULL)
+    user_exchange_account = models.ForeignKey(User_Exchange_Account, null=True, on_delete=models.SET_NULL)
+    pair = models.CharField(_('Pair'), max_length=50, blank=True)
+    initial_first_symbol_balance = models.FloatField(_('Initial First Symbol Balance'), null=True, blank=True)
+    initial_second_symbol_balance = models.FloatField(_('Initial Second Symbol Balance'), null=True, blank=True)
+    current_currency = models.CharField(_('Current Currency'), max_length=50, blank=True)
+    current_currency_balance = models.FloatField(_('Current Currency Balance'), null=True, blank=True)
+    is_active = models.BooleanField(
+        _('active'),
+        default=True,
+    )
+    modified_on = models.DateTimeField(_('modified_on'), default=timezone.now)
+    created_on = models.DateTimeField(_('created_on'), default=timezone.now)
 
 # class Orders(models.Model):
 #     order_id = models.IntegerField(primary_key=True, editable=False)
