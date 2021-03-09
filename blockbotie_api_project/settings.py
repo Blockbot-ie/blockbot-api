@@ -30,7 +30,7 @@ SECRET_KEY = 'hit=k4y(&k*&20^0klp*mhu(fx7b2hx6kc*8s(dzo2i6w-g3^^'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['https://myblockbot-api.herokuapp.com']
 
 
 # Application definition
