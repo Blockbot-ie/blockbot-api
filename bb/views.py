@@ -158,3 +158,18 @@ class StrategyPairs(mixins.CreateModelMixin,
 
     def get_queryset(self):
         return Strategy_Supported_Pairs.objects.all()
+    
+    def post(self, request, *args, **kwargs):
+        request.data['user'] = self.request.user.user_id
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        try:
+            content = {'Success': 'Strategy connection successful'}
+            return Response(content, status=status.HTTP_201_CREATED)
+        except Exception as error:
+            content = {'Error': str(error)}
+            print(error)
+            return Response(content, status=status.HTTP_400_BAD_REQUEST)
+
+    

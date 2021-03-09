@@ -48,12 +48,12 @@ class ExchangeSerializer(serializers.ModelSerializer):
 class ConnectExchangeSerializer(serializers.ModelSerializer):
     class Meta:
         model = User_Exchange_Account
-        fields = ('name', 'api_key', 'api_secret', 'exchange', 'user', )
+        fields = ('user_exchange_account_id', 'name', 'api_key', 'api_secret', 'exchange', 'user', )
 
 class ConnectStrategySerializer(serializers.ModelSerializer):
     class Meta:
         model = User_Strategy_Pair
-        fields = ('strategy', 'user_exchange_account', 'pair', 'initial_first_symbol_balance', 'initial_second_symbol_balance', 'current_currency', 'current_currency_balance',)
+        fields = ('strategy', 'user_exchange_account', 'pair', 'initial_first_symbol_balance', 'initial_second_symbol_balance', 'current_currency', 'current_currency_balance', 'user')
         
         
 class StrategySupportedPairsSerializer(serializers.ModelSerializer):
