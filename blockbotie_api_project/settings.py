@@ -85,7 +85,8 @@ REST_FRAMEWORK = {
 
 CORS_ORIGIN_WHITELIST = (
     'http://localhost:3000',
-    'https://myblockbot-ui.herokuapp.com'
+    'https://myblockbot-ui.herokuapp.com',
+    'http://www.myblockbot.com'
 )
 
 
