@@ -1,0 +1,1 @@
+web: gunicorn blockbotie_api_project.wsgi:application
