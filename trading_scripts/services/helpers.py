@@ -6,7 +6,7 @@ def get_target_currencies(strategy):
     strategy_supported_pairs = Strategy_Supported_Pairs.objects.filter(strategy=strategy)
     target_currencies = []
     now = dt.datetime.utcnow()
-    earlier = now - dt.timedelta(minutes=10)
+    earlier = now - dt.timedelta(minutes=60)
     for pair in strategy_supported_pairs:
         data = {}
         target_currency = Strategies_Suggested.objects.filter(pair_id=pair.pair_id, tick__gte=earlier).first()
@@ -16,7 +16,7 @@ def get_target_currencies(strategy):
 
     return target_currencies
 
-def get_exchange(exchange, api_key, api_secret, subaccount):
+def get_exchange(exchange, api_key, api_secret, subaccount, password):
     try:
         if exchange == 'ftx' and subaccount != '':
             exchange = getattr(ccxt, exchange)({
@@ -26,6 +26,14 @@ def get_exchange(exchange, api_key, api_secret, subaccount):
                 'enableRateLimit': True,
                 'headers': {'FTX-SUBACCOUNT': subaccount},
             })
+        if exchange == 'coinbasepro' and password != '':
+            exchange = getattr(ccxt, exchange)({
+                    'apiKey': api_key,
+                    'secret': api_secret,
+                    'timeout': 10000,
+                    'enableRateLimit': True,
+                    'password': password
+                })
         else:
             exchange = getattr(ccxt, exchange)({
                     'apiKey': api_key,

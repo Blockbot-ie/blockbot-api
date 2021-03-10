@@ -7,7 +7,7 @@ class Command(BaseCommand):
     help = 'Algorithm to buy and sell based on 20 Week Moving Average'
     def handle(self, *args, **options):
         try:
-            strategy = Strategy.objects.filter(strategy_id='fd22a59f-9525-4782-a25b-8da98e18f6ca').first()
+            strategy = Strategy.objects.filter(strategy_id='4a5ac44c-bec2-4128-a9fa-f9a744c1d99d').first()
             # strategy_0.strategy_0_main(strategy)
             strategy_0.strategy_0_buy_or_sell(strategy)
         except Exception as e:
