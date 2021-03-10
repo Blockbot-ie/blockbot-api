@@ -51,79 +51,44 @@ def strategy_0_buy_or_sell(strategy):
         for user in user_strategy_pairs:
             user_exchange_account = User_Exchange_Account.objects.filter(is_active=True, user_exchange_account_id=user.user_exchange_account_id).first()
             exchange = Exchange.objects.filter(exchange_id=user_exchange_account.exchange_id).first()
-            print(user_exchange_account.user_exchange_account_id)
-            print(user_exchange_account.api_password)
-            print(user_exchange_account.api_secret)
             user_exchange = helpers.get_exchange(exchange.name, user_exchange_account.api_key, user_exchange_account.api_secret, user_exchange_account.sub_account_name, user_exchange_account.api_password)
-            buy = False
-            sell = False
             target_currency = [x['target_currency'] for x in target_currencies if x['pair'] == user.pair][0]
             split = user.pair.index('/')
             first_symbol = user.pair[:split]
-            second_symbol = user.pair[split:]
-            first_symbol_balance = user_exchange.fetch_balance()
+            second_symbol = user.pair[split+1:]
+            second_symbol = 'USDC'
             try:
                 balances = user_exchange.fetch_balance()
             except Exception as e:
                 print(e)
-            available_balances_usd = {}
-            for balance in balances['info']['result']:
-                available_balances_usd[balance['coin']] = balance['usdValue']
+            
+            first_symbol_balance = balances['total'][first_symbol]
+            second_symbol_balance = balances['total'][second_symbol]
             print('Want to be in ', target_currency)
-            if 'BTC' in balances and 'USDT' in balances:
-                if available_balances_usd['BTC'] > available_balances_usd['USDT']:
-                    if target_currency == 'BTC':
-                        print('Condition already satisfied')
-                        pass
-                    else:
-                        amount = balances['BTC']['free']
-                        try:
-                            print('Selling BTC')
-                            order = exchange.create_order('BTC/USDT', 'market', 'sell', amount)
-                        except Exception as e:
-                            print("An exception occurred: ", e)
-                            # send_email.send_daily_email(None, type(e))
-                else:
-                    if target_currency != 'USDT':
-                        amount = 1
-                        price = balances['USDT']['free']
-                        try:
-                            print('Buying BTC')
-                            order = exchange.create_order('BTC/USDT', 'market', 'buy', amount, price)
-                        except Exception as e:
-                            print("An exception occurred: ", e)
-                            # send_email.send_daily_email(None, type(e))
-                    else:
-                        print('Condition already satisfied')
-                        pass
-                    
-            if 'BTC' in balances and 'USDT' not in balances:
-                if target_currency == 'BTC':
-                    print('Condition already satisfied')
-                    pass
-                else:
-                    amount = balances['BTC']['free']
-                    try:
-                        print('Selling BTC')
-                        order = exchange.create_order('BTC/USDT', 'market', 'sell', amount)
-                    except Exception as e:
-                            print("An exception occurred: ", e)
-                            # send_email.send_daily_email(None, type(e))
-
-            if 'USDT' in balances and 'BTC' not in balances:
-                if target_currency == 'USDT':
-                    print('Condition already satisfied')
-                    pass
-                else:
+            
+            if target_currency == user.current_currency:
+                print('Condition already satisfied')
+                pass
+            else:
+                if target_currency == first_symbol:
+                    print('Buying BTC')
                     amount = 1
-                    price = balances['USDT']['free']
+                    price = user.current_currency_balance
                     try:
-                        print('Buying BTC')
-                        order = exchange.create_order('BTC/USDT', 'market', 'buy', amount, price)
+                        order = user_exchange.create_order('BTC/USDT', 'market', 'buy', amount, price)  
                     except Exception as e:
-                            print("An exception occurred: ", e)
-                            # send_email.send_daily_email(None, type(e))
-
+                        print("An exception occurred: ", e)
+                        # send_email.send_daily_email(None, type(e))
+                
+                elif target_currency == second_symbol:
+                    print('Selling BTC')
+                    amount = 1
+                    price = user.current_currency_balance
+                    try:
+                        order = user_exchange.create_order('BTC/USDT', 'market', 'sell', amount, price)
+                    except Exception as e:
+                        print("An exception occurred: ", e)
+                        # send_email.send_daily_email(None, type(e))
     except Exception as e:
         exc_type, exc_obj, exc_tb = sys.exc_info()
         fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
