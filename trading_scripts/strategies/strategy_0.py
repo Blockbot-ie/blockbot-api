@@ -14,7 +14,7 @@ def strategy_0_main(strategy):
         for pair in strategy_pairs:
             start_time_utc = dt.datetime.utcnow().replace(minute=0, second=0, microsecond=0)
             date_from = dt.datetime.today() + dt.timedelta(weeks=-20)
-            df = exchange_data.load_prices(exchange='ftx', price_pair=pair.pair, frequency='1d', date_from=date_from)
+            df = exchange_data.load_prices(exchange='coinbasepro', price_pair=pair.pair, frequency='1d', date_from=date_from)
             ma = exchange_data.get_latest_ma(df_data=df, period='w', num_of_periods=20)
 
             current_price = df.iloc[-1]['Close']
@@ -75,17 +75,16 @@ def strategy_0_buy_or_sell(strategy):
                     amount = 1
                     price = user.current_currency_balance
                     try:
-                        order = user_exchange.create_order('BTC/USDT', 'market', 'buy', amount, price)  
+                        order = user_exchange.create_order(user.pair, 'market', 'buy', amount, price)  
                     except Exception as e:
                         print("An exception occurred: ", e)
                         # send_email.send_daily_email(None, type(e))
                 
                 elif target_currency == second_symbol:
                     print('Selling BTC')
-                    amount = 1
-                    price = user.current_currency_balance
+                    amount = user.current_currency_balance
                     try:
-                        order = user_exchange.create_order('BTC/USDT', 'market', 'sell', amount, price)
+                        order = user_exchange.create_order(user.pair, 'market', 'sell', amount)
                     except Exception as e:
                         print("An exception occurred: ", e)
                         # send_email.send_daily_email(None, type(e))
