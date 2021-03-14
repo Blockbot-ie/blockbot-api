@@ -140,8 +140,7 @@ class ConnectStrategy(mixins.CreateModelMixin,
         serializer.is_valid(raise_exception=True)
         serializer.save()
         try:
-            content = {'Success': 'Strategy connection successful'}
-            return Response(content, status=status.HTTP_201_CREATED)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
         except Exception as error:
             content = {'Error': str(error)}
             print(error)
