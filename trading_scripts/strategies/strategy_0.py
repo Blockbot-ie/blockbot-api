@@ -3,6 +3,7 @@ from bb.models import Strategies_Suggested, Strategy, Strategy_Supported_Pairs, 
 import pandas as pd
 from trading_scripts.services import exchange_data, helpers
 import os, sys
+from time import sleep
 
 def strategy_0_main(strategy):
     """
@@ -56,7 +57,6 @@ def strategy_0_buy_or_sell(strategy):
             split = user.pair.index('/')
             first_symbol = user.pair[:split]
             second_symbol = user.pair[split+1:]
-            second_symbol = 'USDC'
             try:
                 balances = user_exchange.fetch_balance()
             except Exception as e:
@@ -71,17 +71,25 @@ def strategy_0_buy_or_sell(strategy):
                 pass
             else:
                 if target_currency == first_symbol:
-                    print('Buying BTC')
+                    print('Buying ', target_currency)
                     amount = 1
                     price = user.current_currency_balance
                     try:
-                        order = user_exchange.create_order(user.pair, 'market', 'buy', amount, price)  
+                        order = user_exchange.create_order(user.pair, 'market', 'buy', amount, price)
+                        if order:
+                            order_id = order['id']
+                            sleep(3)
+                            completed_order = user_exchange.fetch_order(order_id)
+                            user.current_currency = target_currency
+                            user.current_currency_balance = completed_order['amount']
+                            user.save()
+
                     except Exception as e:
                         print("An exception occurred: ", e)
                         # send_email.send_daily_email(None, type(e))
                 
                 elif target_currency == second_symbol:
-                    print('Selling BTC')
+                    print('Selling ', target_currency)
                     amount = user.current_currency_balance
                     try:
                         order = user_exchange.create_order(user.pair, 'market', 'sell', amount)
