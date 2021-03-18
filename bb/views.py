@@ -2,8 +2,9 @@ from rest_framework import permissions, status, generics, mixins
 from rest_framework.response import Response
 import ccxt
 from knox.models import AuthToken
-from .models import Strategy, Exchange, User_Exchange_Account, User_Strategy_Pair, Strategy_Supported_Pairs, Pairs
+from .models import User, Strategy, Exchange, User_Exchange_Account, User_Strategy_Pair, Strategy_Supported_Pairs, Pairs
 from .serializers import UserSerializer, RegisterSerializer, LoginSerializer, StrategySerializer, ExchangeSerializer, ConnectExchangeSerializer, ConnectStrategySerializer, StrategySupportedPairsSerializer
+import datetime as dt
 
 # Register API
 class RegisterAPI(generics.GenericAPIView):
@@ -15,9 +16,10 @@ class RegisterAPI(generics.GenericAPIView):
 
     def post(self, request, *args, **kwargs):
         try:
-            print(request.data)
+            
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
+
             user = serializer.save()
         except Exception as error:
             print(error)
@@ -110,6 +112,7 @@ class ConnectExchange(
             return Response(content, status=status.HTTP_400_BAD_REQUEST)
 
         request.data['user'] = self.request.user.user_id
+        print(request.data)
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
