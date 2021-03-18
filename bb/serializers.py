@@ -55,11 +55,7 @@ class ExchangeSerializer(serializers.ModelSerializer):
 class ConnectExchangeSerializer(serializers.ModelSerializer):
     class Meta:
         model = User_Exchange_Account
-<<<<<<< HEAD
-        fields = ('user_exchange_account_id', 'name', 'api_key', 'api_secret', 'exchange', 'user', 'api_password')
-=======
         fields = ('user_exchange_account_id', 'name', 'api_key', 'api_secret', 'exchange', 'user', 'api_password',)
->>>>>>> main
 
 class ConnectStrategySerializer(serializers.ModelSerializer):
     class Meta:
