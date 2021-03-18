@@ -23,12 +23,13 @@ isort==5.7.0
 lazy-object-proxy==1.5.2
 mccabe==0.6.1
 multidict==5.1.0
-psycopg2==2.7.7
 psycopg2-binary==2.8.6
 pycares==3.1.1
 pycparser==2.20
 PyJWT==1.7.1
 pylint==2.7.1
+pylint-django==2.4.2
+pylint-plugin-utils==0.6
 pytz==2021.1
 requests==2.25.1
 six==1.15.0

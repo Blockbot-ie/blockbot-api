@@ -4,6 +4,9 @@ from django.contrib.auth import authenticate
 from django.http import HttpResponseRedirect, JsonResponse
 from bb.models import User, Strategy, Exchange, User_Exchange_Account, User_Strategy_Pair, Strategy_Supported_Pairs
 import ccxt
+import datetime as dt
+
+User._meta.get_field('email')._unique = True
 
 # User Serializer
 class UserSerializer(serializers.ModelSerializer):
@@ -15,13 +18,14 @@ class UserSerializer(serializers.ModelSerializer):
 class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('user_id', 'username', 'first_name', 'last_name', 'email', 'password', )
+        fields = ('user_id', 'username', 'first_name', 'last_name', 'email', 'password', 'last_login')
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
         user = User.objects.create_user(validated_data['username'], validated_data['email'], validated_data['password'])
         user.first_name = validated_data['first_name']
         user.last_name = validated_data['last_name']
+        user.last_login = dt.datetime.now
         return user
 
 # Login Serializer
@@ -32,6 +36,7 @@ class LoginSerializer(serializers.Serializer):
     def validate(self, data):
         user = authenticate(**data)
         if user and user.is_active:
+            user.last_login = dt.datetime.now
             return user
         raise serializers.ValidationError("Incorrect Credentials")
 
@@ -50,7 +55,11 @@ class ExchangeSerializer(serializers.ModelSerializer):
 class ConnectExchangeSerializer(serializers.ModelSerializer):
     class Meta:
         model = User_Exchange_Account
+<<<<<<< HEAD
         fields = ('user_exchange_account_id', 'name', 'api_key', 'api_secret', 'exchange', 'user', 'api_password')
+=======
+        fields = ('user_exchange_account_id', 'name', 'api_key', 'api_secret', 'exchange', 'user', 'api_password',)
+>>>>>>> main
 
 class ConnectStrategySerializer(serializers.ModelSerializer):
     class Meta:

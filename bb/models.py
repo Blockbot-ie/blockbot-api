@@ -28,14 +28,25 @@ class Exchange(models.Model):
         default=True,
     )
     created_on = models.DateTimeField(_('created_on'), default=timezone.now)
-    
+
+class Pairs(models.Model):
+    pair_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    symbol = models.CharField(_('Symbol'), max_length=50, blank=True)
+    ticker_1 = models.CharField(_('Ticker 1'), max_length=50, blank=True)
+    ticker_2 = models.CharField(_('Ticker 2'), max_length=50, blank=True)
+    ticker_1_min_value = models.FloatField(_('Ticker 1 Min Value'), null=True, blank=True)
+    ticker_2_min_value = models.FloatField(_('Ticker 2 Min Value'), null=True, blank=True)
+    is_active = models.BooleanField(
+        _('active'),
+        default=True,
+    )
+    created_on = models.DateTimeField(_('created_on'), default=timezone.now)
     
 class User_Exchange_Account(models.Model):
     user_exchange_account_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(_('Exchange Account Name'), max_length=255, blank=True)
     user = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
     exchange = models.ForeignKey(Exchange, null=True, on_delete=models.SET_NULL)
-    strategy = models.ForeignKey(Strategy, null=True, on_delete=models.SET_NULL)
     api_key = encrypt(models.CharField(_('API Key'), max_length=255, blank=True))
     api_secret = encrypt(models.CharField(_('API Secret'), max_length=255, blank=True))
     api_password = encrypt(models.CharField(_('API Password'), max_length=255, blank=True))
@@ -78,9 +89,9 @@ class User_Strategy_Pair(models.Model):
 #     user_strategy_account = models.ForeignKey(User_Strategy_Account, null=True, on_delete=models.SET_NULL)
 
 class Strategy_Supported_Pairs(models.Model):
-    pair_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    strategy_pair_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     strategy = models.ForeignKey(Strategy, null=True, on_delete=models.SET_NULL)
-    pair = models.CharField(_('Pair'), max_length=50, blank=True)
+    pair = models.ForeignKey(Pairs, null=True, on_delete=models.SET_NULL)
     is_active = models.BooleanField(
         _('active'),
         default=True,

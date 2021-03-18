@@ -30,7 +30,7 @@ SECRET_KEY = 'hit=k4y(&k*&20^0klp*mhu(fx7b2hx6kc*8s(dzo2i6w-g3^^'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['myblockbot-api.herokuapp.com']
+ALLOWED_HOSTS = ['myblockbot-api.herokuapp.com', '127.0.0.1']
 
 
 # Application definition
@@ -87,7 +87,9 @@ REST_FRAMEWORK = {
 CORS_ORIGIN_WHITELIST = (
     'http://localhost:3000',
     'https://myblockbot-ui.herokuapp.com',
-    'http://www.myblockbot.com'
+    'http://www.myblockbot.com',
+    'http://www.app.myblockbot.com',
+    'http://app.myblockbot.com'
 )
 
 
