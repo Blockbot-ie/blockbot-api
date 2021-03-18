@@ -1,5 +1,5 @@
 import datetime as dt
-from bb.models import Strategies_Suggested, Strategy, Strategy_Supported_Pairs, User_Exchange_Account, User_Strategy_Pair, Exchange
+from bb.models import Pair, Strategies_Suggested, Strategy, Strategy_Supported_Pairs, User_Exchange_Account, User_Strategy_Pair, Exchange, Pair
 import pandas as pd
 from trading_scripts.services import exchange_data, helpers
 import os, sys
@@ -13,6 +13,7 @@ def strategy_0_main(strategy):
     try:
         strategy_pairs = Strategy_Supported_Pairs.objects.filter(strategy_id=strategy)
         for pair in strategy_pairs:
+            symbol = Pair.objects.filter(pair_id=pair.pair_id)
             start_time_utc = dt.datetime.utcnow().replace(minute=0, second=0, microsecond=0)
             date_from = dt.datetime.today() + dt.timedelta(weeks=-20)
             df = exchange_data.load_prices(exchange='coinbasepro', price_pair=pair.pair, frequency='1d', date_from=date_from)
@@ -20,9 +21,9 @@ def strategy_0_main(strategy):
 
             current_price = df.iloc[-1]['Close']
             
-            split = pair.pair.index('/')
-            first_symbol = pair.pair[:split]
-            second_symbol = pair.pair[split:]
+            split = symbol.symbol.index('/')
+            first_symbol = symbol.symbol[:split]
+            second_symbol = symbol.symbol[split:]
             if current_price > ma:
                 target_currency = first_symbol
             else:
