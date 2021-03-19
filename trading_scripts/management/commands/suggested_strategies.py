@@ -9,7 +9,8 @@ class Command(BaseCommand):
         try:
             strategy = Strategy.objects.filter(strategy_id='4a5ac44c-bec2-4128-a9fa-f9a744c1d99d').first()
             strategy_0.strategy_0_main(strategy)
-            # strategy_0.strategy_0_buy_or_sell(strategy)
+            strategy_0.strategy_0_buy_or_sell(strategy)
+            strategy_0.update_orders()
         except Exception as e:
             exc_type, exc_obj, exc_tb = sys.exc_info()
             fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]

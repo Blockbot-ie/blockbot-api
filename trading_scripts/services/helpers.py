@@ -1,16 +1,17 @@
 import datetime as dt
 import ccxt
-from bb.models import Strategies_Suggested, Strategy_Supported_Pairs
+from bb.models import Strategies_Suggested, Strategy_Supported_Pairs, Pairs
 
 def get_target_currencies(strategy):
     strategy_supported_pairs = Strategy_Supported_Pairs.objects.filter(strategy=strategy)
     target_currencies = []
     now = dt.datetime.utcnow()
-    earlier = now - dt.timedelta(minutes=60)
+    earlier = now - dt.timedelta(minutes=2)
     for pair in strategy_supported_pairs:
         data = {}
-        target_currency = Strategies_Suggested.objects.filter(pair_id=pair.pair_id, tick__gte=earlier).first()
-        data['pair'] = pair.pair
+        target_currency = Strategies_Suggested.objects.filter(pair_id=pair.strategy_pair_id, tick__gte=earlier).first()
+        symbol = Pairs.objects.filter(pair_id=pair.pair_id).first()
+        data['pair'] = symbol.symbol
         data['target_currency'] = target_currency.target_currency
         target_currencies.append(data)
 

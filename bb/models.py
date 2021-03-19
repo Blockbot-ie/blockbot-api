@@ -75,18 +75,19 @@ class User_Strategy_Pair(models.Model):
     modified_on = models.DateTimeField(_('modified_on'), default=timezone.now)
     created_on = models.DateTimeField(_('created_on'), default=timezone.now)
 
-# class Orders(models.Model):
-#     order_id = models.IntegerField(primary_key=True, editable=False)
-#     exchange = models.ForeignKey(Exchange, null=True, on_delete=models.SET_NULL)
-#     pair = models.CharField(_('Pair'), max_length=50, blank=True)
-#     order_type = models.CharField(_('Order Type'), max_length=50, blank=True)
-#     currency_price = models.IntegerField(_('Currency Price'), default=0)
-#     order_cost = models.IntegerField(_('Order Cost'), default=0)
-#     order_status = models.CharField(_('Order Status'), max_length=50, blank=True)
-#     order_side = models.CharField(_('Order Side'), max_length=50, blank=True)
-#     modified_on = models.DateTimeField(_('modified_on'), default=timezone.now)
-#     created_on = models.DateTimeField(_('created_on'), default=timezone.now)
-#     user_strategy_account = models.ForeignKey(User_Strategy_Account, null=True, on_delete=models.SET_NULL)
+class Orders(models.Model):
+    order_id = models.CharField(primary_key=True, max_length=50, editable=False)
+    market = models.CharField(_('Market'), max_length=50, blank=True)
+    side = models.CharField(_('Side'), max_length=50, blank=True)
+    size = models.IntegerField(_('Order Size'), default=0)
+    filled = models.IntegerField(_('Filled'), default=0)
+    filled_price = models.IntegerField(_('Filled Price'), default=0)
+    fee = models.IntegerField(_('Fee'), default=0)
+    status = models.CharField(_('Status'), max_length=50, blank=True)
+    amount = models.IntegerField(_('Amount'), default=0)
+    modified_on = models.DateTimeField(_('modified_on'), default=timezone.now)
+    created_on = models.DateTimeField(_('created_on'), default=timezone.now)
+    user_strategy_pair = models.ForeignKey(User_Strategy_Pair, null=True, on_delete=models.SET_NULL)
 
 class Strategy_Supported_Pairs(models.Model):
     strategy_pair_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
