@@ -8,8 +8,17 @@ from django.contrib.auth.models import AbstractUser
 
 class User(AbstractUser):
     user_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    is_connected = models.BooleanField(
+        _('Connected'),
+        default=False,
+    )
     class Meta:
         db_table = 'bb_user'
+
+class UserStory(models.Model):
+    user = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
+    stage = models.IntegerField(_('Story Stage'), default=1)
+
 class Strategy(models.Model):
     strategy_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(_('Strategy Name'), max_length=150, blank=True)

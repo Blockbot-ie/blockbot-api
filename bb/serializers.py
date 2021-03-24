@@ -12,7 +12,7 @@ User._meta.get_field('email')._unique = True
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('user_id', 'username', 'email')
+        fields = ('user_id', 'username', 'email', 'is_connected')
 
 # Register Serializer
 class RegisterSerializer(serializers.ModelSerializer):
