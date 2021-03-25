@@ -1,5 +1,6 @@
 from rest_framework import permissions, status, generics, mixins
 from rest_framework.response import Response
+from django.db.models import Sum
 import ccxt
 from knox.models import AuthToken
 from .models import User, Strategy, Exchange, User_Exchange_Account, User_Strategy_Pair, Strategy_Supported_Pairs, Pairs
@@ -55,6 +56,24 @@ class UserAPI(generics.RetrieveAPIView):
 
     def get_object(self):
         return self.request.user
+
+class DashBoardData(mixins.ListModelMixin,
+                  mixins.CreateModelMixin,
+                  generics.GenericAPIView):
+    
+    permission_classes = (permissions.IsAuthenticated, )
+
+    def get(self, request, *args, **kwargs):
+        user_pairs = User_Strategy_Pair.objects.filter(user_id=self.request.user.user_id, is_active=True) 
+        balance = user_pairs.aggregate(Sum('current_currency_balance'))
+        active_strategies = user_pairs.count()
+        content = {
+            'balance': balance,
+            'active_strategies': active_strategies
+        }
+        print(content)
+        return Response(content, status=status.HTTP_200_OK)
+
 
 class StrategyList(mixins.ListModelMixin,
                   mixins.CreateModelMixin,
@@ -143,6 +162,9 @@ class ConnectStrategy(mixins.CreateModelMixin,
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        user = User.objects.filter(user_id=self.request.user.user_id).first()
+        user.is_connected = True
+        user.save()
         try:
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         except Exception as error:
