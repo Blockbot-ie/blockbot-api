@@ -71,7 +71,6 @@ class DashBoardData(mixins.ListModelMixin,
             'balance': balance,
             'active_strategies': active_strategies
         }
-        print(content)
         return Response(content, status=status.HTTP_200_OK)
 
 
@@ -107,7 +106,6 @@ class ConnectExchange(
     def get_queryset(self):
         queryset = User_Exchange_Account.objects.all()
         user_id = self.request.user.user_id
-        print(user_id)
         if user_id is not None:
             queryset = queryset.filter(user_id=user_id)
             return queryset
@@ -132,7 +130,6 @@ class ConnectExchange(
             return Response(content, status=status.HTTP_400_BAD_REQUEST)
 
         request.data['user'] = self.request.user.user_id
-        print(request.data)
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -158,6 +155,38 @@ class ConnectStrategy(mixins.CreateModelMixin,
         return queryset.none()
 
     def post(self, request, *args, **kwargs):
+        user_exchange_account = User_Exchange_Account.objects.filter(is_active=True, user_exchange_account_id=request.data['user_exchange_account']).first()
+        try:
+            if user_exchange_account:
+                exchange_id = 'coinbasepro'
+                exchange_class = getattr(ccxt, exchange_id)
+                exchange = exchange_class({
+                    'apiKey': user_exchange_account.api_key,
+                    'secret': user_exchange_account.api_secret,
+                    'password': user_exchange_account.api_password,
+                    'timeout': 30000,
+                    'enableRateLimit': True,
+                })
+                balance = exchange.fetch_balance()
+                current_balance = [x for x in balance["info"] if x['currency'] == request.data['current_currency']]
+                current_balance = current_balance[0]['balance']
+                user_strategies_with_current_currency = User_Strategy_Pair.objects.filter(is_active=True, user_exchange_account_id=request.data['user_exchange_account'], current_currency=request.data['current_currency'])
+                balance_taken_by_strategies = user_strategies_with_current_currency.aggregate(Sum('current_currency_balance'))
+                print(balance_taken_by_strategies)
+                if balance_taken_by_strategies['current_currency_balance__sum'] is not None:
+                    balance_available = float(current_balance) - balance_taken_by_strategies['current_currency_balance__sum']
+                else:
+                    print('Hello')
+                    balance_available = float(current_balance)
+                if balance_available < request.data['current_currency_balance']:
+                    amount_required = request.data['current_currency_balance'] - balance_available
+                    content = {'Error': "Insufficient Funds. Please fund your account with {0} {1}".format(amount_required, request.data['current_currency'])}
+                    return Response(content, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as error:
+            content = {'Error': str(error)}
+            return Response(content, status=status.HTTP_400_BAD_REQUEST)
+
         request.data['user'] = self.request.user.user_id
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
