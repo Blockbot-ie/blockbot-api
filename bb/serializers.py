@@ -2,7 +2,7 @@ from rest_framework import serializers
 from rest_framework_jwt.settings import api_settings
 from django.contrib.auth import authenticate
 from django.http import HttpResponseRedirect, JsonResponse
-from bb.models import User, Strategy, Exchange, User_Exchange_Account, User_Strategy_Pair, Strategy_Supported_Pairs
+from bb.models import User, Strategy, Exchange, User_Exchange_Account, User_Strategy_Pair, Strategy_Supported_Pairs, Orders
 import ccxt
 import datetime as dt
 
@@ -81,3 +81,9 @@ class StrategySupportedPairsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Strategy_Supported_Pairs
         fields = ('strategy', 'pair')
+
+class OrdersSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Orders
+        fields = ('order_id', 'side', 'status', 'market', 'size', 'filled', 'filled_price', 'fee', 'created_on')

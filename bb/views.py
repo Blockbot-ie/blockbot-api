@@ -4,8 +4,8 @@ from django.db import IntegrityError
 from django.db.models import Sum
 import ccxt
 from knox.models import AuthToken
-from .models import User, Strategy, Exchange, User_Exchange_Account, User_Strategy_Pair, Strategy_Supported_Pairs, Pairs
-from .serializers import UserSerializer, RegisterSerializer, LoginSerializer, StrategySerializer, ExchangeSerializer, ConnectExchangeSerializer, ConnectStrategySerializer, StrategySupportedPairsSerializer
+from .models import User, Strategy, Exchange, User_Exchange_Account, User_Strategy_Pair, Strategy_Supported_Pairs, Pairs, Orders
+from .serializers import UserSerializer, RegisterSerializer, LoginSerializer, StrategySerializer, ExchangeSerializer, ConnectExchangeSerializer, ConnectStrategySerializer, StrategySupportedPairsSerializer, OrdersSerializer
 import datetime as dt
 
 # Register API
@@ -242,4 +242,15 @@ class StrategyPairs(mixins.CreateModelMixin,
             print(error)
             return Response(content, status=status.HTTP_400_BAD_REQUEST)
 
+class OrdersList(mixins.CreateModelMixin,
+                    generics.ListAPIView):
+
+    permission_classes = (permissions.IsAuthenticated, )
+    serializer_class = OrdersSerializer
     
+    def get_queryset(self):
+        user_id = self.request.user.user_id
+        if user_id is not None:
+            queryset = Orders.objects.filter(user=user_id)
+            return queryset
+        return queryset.none()

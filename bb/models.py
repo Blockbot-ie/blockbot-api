@@ -96,6 +96,7 @@ class Orders(models.Model):
     amount = models.IntegerField(_('Amount'), default=0)
     modified_on = models.DateTimeField(_('modified_on'), default=timezone.now)
     created_on = models.DateTimeField(_('created_on'), default=timezone.now)
+    user = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
     user_strategy_pair = models.ForeignKey(User_Strategy_Pair, null=True, on_delete=models.SET_NULL)
 
 class Strategy_Supported_Pairs(models.Model):

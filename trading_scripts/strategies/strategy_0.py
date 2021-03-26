@@ -28,6 +28,7 @@ def strategy_0_main(strategy):
                 target_currency = first_symbol
             else:
                 target_currency = second_symbol
+            target_currency = 'USDC'
             data = Strategies_Suggested()
             data.start_time_utc = start_time_utc
             data.target_currency = target_currency
@@ -90,6 +91,7 @@ def strategy_0_buy_or_sell(strategy):
                             new_order.status = order['status']
                             new_order.amount = order['amount']
                             new_order.user_strategy_pair = user
+                            new_order.user = user.user
                             new_order.save()
 
                     except Exception as e:
@@ -114,6 +116,7 @@ def strategy_0_buy_or_sell(strategy):
                             new_order.status = order['status']
                             new_order.amount = order['cost']
                             new_order.user_strategy_pair = user
+                            new_order.user = user.user
                             new_order.save()
                     except Exception as e:
                         print("An exception occurred: ", e)
