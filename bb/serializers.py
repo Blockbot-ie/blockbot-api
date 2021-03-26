@@ -62,12 +62,20 @@ class ConnectExchangeSerializer(serializers.ModelSerializer):
         exchange_account = User_Exchange_Account.objects.filter(user_exchange_account_id=data['user_exchange_account_id']).first()
         if exchange_account:
             raise serializers.ValidationError("Exchange Account already Connected")
+        else:
+            return data
 
 class ConnectStrategySerializer(serializers.ModelSerializer):
     class Meta:
         model = User_Strategy_Pair
         fields = ('strategy', 'user_exchange_account', 'pair', 'initial_first_symbol_balance', 'initial_second_symbol_balance', 'current_currency', 'current_currency_balance', 'user')
-        
+    
+    def validate(self, data):
+        user_strategy_pair = User_Strategy_Pair.objects.filter(user_exchange_account_id=data['user_exchange_account'], pair=data['pair']).first()
+        if user_strategy_pair:
+            raise serializers.ValidationError("Pair already in use. You can add more to your pair under strategies")
+        else:
+            return data
         
 class StrategySupportedPairsSerializer(serializers.ModelSerializer):
     class Meta:
