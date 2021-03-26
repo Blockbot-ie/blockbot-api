@@ -53,9 +53,15 @@ class ExchangeSerializer(serializers.ModelSerializer):
         fields = ('exchange_id', 'display_name',)
 
 class ConnectExchangeSerializer(serializers.ModelSerializer):
+    user_exchange_account_id = serializers.UUIDField()
     class Meta:
         model = User_Exchange_Account
         fields = ('user_exchange_account_id', 'name', 'api_key', 'api_secret', 'exchange', 'user', 'api_password',)
+
+    def validate(self, data):
+        exchange_account = User_Exchange_Account.objects.filter(user_exchange_account_id=data['user_exchange_account_id']).first()
+        if exchange_account:
+            raise serializers.ValidationError("Exchange Account already Connected")
 
 class ConnectStrategySerializer(serializers.ModelSerializer):
     class Meta:

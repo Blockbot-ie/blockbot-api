@@ -53,7 +53,7 @@ class Pairs(models.Model):
     
 class User_Exchange_Account(models.Model):
     user_exchange_account_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.CharField(_('Exchange Account Name'), max_length=255, blank=True)
+    name = models.CharField(_('Exchange Account Name'), max_length=255, blank=True, unique=True)
     user = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
     exchange = models.ForeignKey(Exchange, null=True, on_delete=models.SET_NULL)
     api_key = encrypt(models.CharField(_('API Key'), max_length=255, blank=True))

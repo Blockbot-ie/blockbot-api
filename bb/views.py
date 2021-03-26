@@ -1,5 +1,6 @@
 from rest_framework import permissions, status, generics, mixins
 from rest_framework.response import Response
+from django.db import IntegrityError
 from django.db.models import Sum
 import ccxt
 from knox.models import AuthToken
@@ -123,18 +124,23 @@ class ConnectExchange(
                 'timeout': 30000,
                 'enableRateLimit': True,
             })
-            exchange.fetch_balance()
+            account_id = exchange.fetch_balance()
+            account_id = account_id["info"][0]['profile_id']
+            
         except Exception as error:
             print(error)
             content = {'Error': str(error)}
             return Response(content, status=status.HTTP_400_BAD_REQUEST)
-
+        request.data['user_exchange_account_id'] = account_id
         request.data['user'] = self.request.user.user_id
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         try:
             return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except IntegrityError as err:
+            content = {'Error': str(err)}
+            return Response(content, status=status.HTTP_400_BAD_REQUEST)
         except Exception as error:
             content = {'Error': str(error)}
             print(error)
