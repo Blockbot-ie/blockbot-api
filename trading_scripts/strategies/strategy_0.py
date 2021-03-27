@@ -28,7 +28,7 @@ def strategy_0_main(strategy):
                 target_currency = first_symbol
             else:
                 target_currency = second_symbol
-            target_currency = 'USDC'
+            # target_currency = 'USDC'
             data = Strategies_Suggested()
             data.start_time_utc = start_time_utc
             data.target_currency = target_currency
