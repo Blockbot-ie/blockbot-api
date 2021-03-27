@@ -5,7 +5,7 @@ from django.db.models import Sum
 import ccxt
 from knox.models import AuthToken
 from .models import User, Strategy, Exchange, User_Exchange_Account, User_Strategy_Pair, Strategy_Supported_Pairs, Pairs, Orders
-from .serializers import UserSerializer, RegisterSerializer, LoginSerializer, StrategySerializer, ExchangeSerializer, ConnectExchangeSerializer, ConnectStrategySerializer, StrategySupportedPairsSerializer, OrdersSerializer
+from .serializers import UserSerializer, RegisterSerializer, LoginSerializer, StrategySerializer, ExchangeSerializer, ConnectExchangeSerializer, ConnectStrategySerializer, StrategySupportedPairsSerializer, OrdersSerializer, GetConnectedExchangesSerializer
 import datetime as dt
 
 # Register API
@@ -97,12 +97,11 @@ class ExchangeList(mixins.ListModelMixin,
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
 
-class ConnectExchange(
-                  mixins.CreateModelMixin,
-                  generics.ListAPIView):
+class GetConnectedExchanges(mixins.CreateModelMixin,
+                            generics.ListAPIView):
 
     permission_classes = (permissions.IsAuthenticated, )
-    serializer_class = ConnectExchangeSerializer
+    serializer_class = GetConnectedExchangesSerializer
     
     def get_queryset(self):
         queryset = User_Exchange_Account.objects.all()
@@ -111,6 +110,12 @@ class ConnectExchange(
             queryset = queryset.filter(user_id=user_id)
             return queryset
         return queryset.none()
+
+class ConnectExchange(mixins.CreateModelMixin,
+                    generics.ListAPIView):
+
+    permission_classes = (permissions.IsAuthenticated, )
+    serializer_class = ConnectExchangeSerializer
 
     def post(self, request, *args, **kwargs):
         exchange_object = Exchange.objects.filter(exchange_id=request.data['exchange']).first()
