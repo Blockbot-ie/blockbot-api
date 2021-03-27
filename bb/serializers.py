@@ -56,7 +56,7 @@ class ConnectExchangeSerializer(serializers.ModelSerializer):
     user_exchange_account_id = serializers.UUIDField()
     class Meta:
         model = User_Exchange_Account
-        fields = ('user_exchange_account_id', 'name', 'exchange', 'user',)
+        fields = ('user_exchange_account_id', 'name', 'api_key', 'api_secret', 'api_password', 'exchange', 'user',)
 
     def validate(self, data):
         exchange_account = User_Exchange_Account.objects.filter(user_exchange_account_id=data['user_exchange_account_id']).first()
