@@ -81,10 +81,11 @@ def strategy_0_buy_or_sell(strategy):
                         if order:
                             price = user_exchange.fetch_ticker(user.pair)
                             new_order = Orders()
+                            print(order)
                             new_order.order_id = order['id']
                             new_order.market = order['symbol']
                             new_order.side = order['side']
-                            # new_order.size = int(order['info']['size'])
+                            new_order.size = order['info']['specified_funds']
                             new_order.filled = order['filled']
                             new_order.filled_price = price['close']
                             new_order.fee = round(order['fee']['cost'], 2)
@@ -104,12 +105,13 @@ def strategy_0_buy_or_sell(strategy):
                     try:
                         order = user_exchange.create_order(user.pair, 'market', 'sell', amount)
                         if order:
+                            print(order)
                             price = user_exchange.fetch_ticker(user.pair)
                             new_order = Orders()
                             new_order.order_id = order['id']
                             new_order.market = order['symbol']
                             new_order.side = order['side']
-                            # new_order.size = int(order['info']['size'])
+                            new_order.size = order['info']['size']
                             new_order.filled = order['filled']
                             new_order.filled_price = price['close']
                             new_order.fee = round(order['fee']['cost'], 2)
@@ -140,16 +142,19 @@ def update_orders():
             open_order.filled = completed_order['filled']
             open_order.fee = round(completed_order['fee']['cost'], 2)
             open_order.status = completed_order['status']
-            open_order.save()
+            
             split = user_strategy_pair.pair.index('/')
             first_symbol = user_strategy_pair.pair[:split]
             second_symbol = user_strategy_pair.pair[split+1:]
             if open_order.side == 'buy':
                 user_strategy_pair.current_currency = first_symbol
                 user_strategy_pair.current_currency_balance = completed_order['amount']
+                open_order.amount = completed_order['amount']
             if open_order.side == 'sell':
                 user_strategy_pair.current_currency = second_symbol
                 user_strategy_pair.current_currency_balance = completed_order['cost']
+                open_order.amount = completed_order['cost']
+            open_order.save()
             user_strategy_pair.save()
 
     except Exception as e:

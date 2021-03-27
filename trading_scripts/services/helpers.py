@@ -6,7 +6,7 @@ def get_target_currencies(strategy):
     strategy_supported_pairs = Strategy_Supported_Pairs.objects.filter(strategy=strategy)
     target_currencies = []
     now = dt.datetime.utcnow()
-    earlier = now - dt.timedelta(minutes=2)
+    earlier = now - dt.timedelta(minutes=1)
     for pair in strategy_supported_pairs:
         data = {}
         target_currency = Strategies_Suggested.objects.filter(pair_id=pair.strategy_pair_id, tick__gte=earlier).first()

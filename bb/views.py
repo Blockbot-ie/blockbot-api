@@ -256,6 +256,6 @@ class OrdersList(mixins.CreateModelMixin,
     def get_queryset(self):
         user_id = self.request.user.user_id
         if user_id is not None:
-            queryset = Orders.objects.filter(user=user_id)
+            queryset = Orders.objects.filter(user=user_id).order_by('-created_on')
             return queryset
         return queryset.none()
