@@ -74,7 +74,8 @@ class GetConnectedExchangesSerializer(serializers.ModelSerializer):
 class ConnectStrategySerializer(serializers.ModelSerializer):
     class Meta:
         model = User_Strategy_Pair
-        fields = ('strategy', 'user_exchange_account', 'pair', 'initial_first_symbol_balance', 'initial_second_symbol_balance', 'current_currency', 'current_currency_balance', 'user')
+        fields = ('id', 'strategy', 'user_exchange_account', 'pair', 'initial_first_symbol_balance', 'initial_second_symbol_balance', 'current_currency', 'current_currency_balance',)
+        depth = 1
     
     def validate(self, data):
         user_strategy_pair = User_Strategy_Pair.objects.filter(user_exchange_account_id=data['user_exchange_account'], pair=data['pair']).first()
