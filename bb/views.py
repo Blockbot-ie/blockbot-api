@@ -66,11 +66,36 @@ class DashBoardData(mixins.ListModelMixin,
 
     def get(self, request, *args, **kwargs):
         user_pairs = User_Strategy_Pair.objects.filter(user_id=self.request.user.user_id, is_active=True) 
+        
+        inc_or_dec_vs_hodl = []
+        for pair in user_pairs:
+            user_exchange_account = User_Exchange_Account.objects.filter(is_active=True, user_exchange_account_id=pair.user_exchange_account_id).first()
+            if user_exchange_account:
+                exchange_object = Exchange.objects.filter(exchange_id=user_exchange_account.exchange_id).first()
+                exchange = getattr (ccxt, exchange_object.name) ()
+                price = exchange.fetch_ticker(pair.pair)
+                split = pair.pair.index('/')
+                first_symbol = pair.pair[:split]
+                second_symbol = pair.pair[split+1:]
+                current_asset_value = pair.current_currency_balance
+                if pair.current_currency == second_symbol:
+                    current_asset_value = pair.current_currency_balance/price['close']
+                diff = current_asset_value - pair.initial_first_symbol_balance
+                inc_or_dec = (diff/pair.initial_first_symbol_balance) * 100
+                object_to_add = {
+                    'exchange_account': pair.user_exchange_account_id,
+                    'strategy': pair.strategy_id,
+                    'pair': pair.pair,
+                    'inc_or_dec': inc_or_dec
+                }
+                inc_or_dec_vs_hodl.append(object_to_add)
+                    
         balance = user_pairs.aggregate(Sum('current_currency_balance'))
         active_strategies = user_pairs.count()
         content = {
             'balance': balance,
-            'active_strategies': active_strategies
+            'active_strategies': active_strategies,
+            'inc_or_dec_vs_hodl': inc_or_dec_vs_hodl
         }
         return Response(content, status=status.HTTP_200_OK)
 
