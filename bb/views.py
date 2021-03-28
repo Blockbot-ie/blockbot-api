@@ -186,6 +186,7 @@ class ConnectStrategy(mixins.CreateModelMixin,
                     'enableRateLimit': True,
                 })
                 balance = exchange.fetch_balance()
+                price = exchange.fetch_ticker(request.data['pair'])
                 current_balance = [x for x in balance["info"] if x['currency'] == request.data['current_currency']]
                 current_balance = current_balance[0]['balance']
                 user_strategies_with_current_currency = User_Strategy_Pair.objects.filter(is_active=True, user_exchange_account_id=request.data['user_exchange_account'], current_currency=request.data['current_currency'])
@@ -204,6 +205,10 @@ class ConnectStrategy(mixins.CreateModelMixin,
             return Response(content, status=status.HTTP_400_BAD_REQUEST)
 
         request.data['user'] = self.request.user.user_id
+        if request.data['initial_first_symbol_balance'] is None or request.data['initial_first_symbol_balance'] == 0:
+            request.data['initial_first_symbol_balance'] = request.data['initial_second_symbol_balance']/price['close']
+        else:
+            request.data['initial_second_symbol_balance'] = price['close'] * request.data['initial_first_symbol_balance']
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
