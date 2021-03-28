@@ -69,6 +69,7 @@ class DashBoardData(mixins.ListModelMixin,
         
         inc_or_dec_vs_hodl = []
         for pair in user_pairs:
+            strategy = Strategy.objects.filter(is_active=True, strategy_id=pair.strategy_id).first()
             user_exchange_account = User_Exchange_Account.objects.filter(is_active=True, user_exchange_account_id=pair.user_exchange_account_id).first()
             if user_exchange_account:
                 exchange_object = Exchange.objects.filter(exchange_id=user_exchange_account.exchange_id).first()
@@ -87,7 +88,9 @@ class DashBoardData(mixins.ListModelMixin,
                 inc_or_dec = (diff/pair.initial_first_symbol_balance) * 100
                 inc_or_dec_object_to_add = {
                     'exchange_account': pair.user_exchange_account_id,
-                    'strategy': pair.strategy_id,
+                    'exchange_account_name': user_exchange_account.name,
+                    'strategy_id': pair.strategy_id,
+                    'strategy_name': strategy.name,
                     'pair': pair.pair,
                     'inc_or_dec': inc_or_dec,
                     'balance': balance
