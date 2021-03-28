@@ -78,19 +78,22 @@ class DashBoardData(mixins.ListModelMixin,
                 first_symbol = pair.pair[:split]
                 second_symbol = pair.pair[split+1:]
                 current_asset_value = pair.current_currency_balance
+                balance = pair.current_currency_balance
                 if pair.current_currency == second_symbol:
                     current_asset_value = pair.current_currency_balance/price['close']
+                else:
+                    balance = pair.current_currency_balance * price['close']
                 diff = current_asset_value - pair.initial_first_symbol_balance
                 inc_or_dec = (diff/pair.initial_first_symbol_balance) * 100
-                object_to_add = {
+                inc_or_dec_object_to_add = {
                     'exchange_account': pair.user_exchange_account_id,
                     'strategy': pair.strategy_id,
                     'pair': pair.pair,
-                    'inc_or_dec': inc_or_dec
+                    'inc_or_dec': inc_or_dec,
+                    'balance': balance
                 }
-                inc_or_dec_vs_hodl.append(object_to_add)
+                inc_or_dec_vs_hodl.append(inc_or_dec_object_to_add)
                     
-        balance = user_pairs.aggregate(Sum('current_currency_balance'))
         active_strategies = user_pairs.count()
         content = {
             'balance': balance,

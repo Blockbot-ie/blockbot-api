@@ -81,7 +81,7 @@ def strategy_0_buy_or_sell(strategy):
                         if order:
                             price = user_exchange.fetch_ticker(user.pair)
                             new_order = Orders()
-                            print(order)
+                            
                             new_order.order_id = order['id']
                             new_order.market = order['symbol']
                             new_order.side = order['side']
@@ -105,7 +105,7 @@ def strategy_0_buy_or_sell(strategy):
                     try:
                         order = user_exchange.create_order(user.pair, 'market', 'sell', amount)
                         if order:
-                            print(order)
+                            
                             price = user_exchange.fetch_ticker(user.pair)
                             new_order = Orders()
                             new_order.order_id = order['id']
@@ -142,7 +142,6 @@ def update_orders():
             open_order.filled = completed_order['filled']
             open_order.fee = round(completed_order['fee']['cost'], 2)
             open_order.status = completed_order['status']
-            print(completed_order)
             split = user_strategy_pair.pair.index('/')
             first_symbol = user_strategy_pair.pair[:split]
             second_symbol = user_strategy_pair.pair[split+1:]
