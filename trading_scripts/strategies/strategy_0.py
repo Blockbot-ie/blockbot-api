@@ -142,7 +142,7 @@ def update_orders():
             open_order.filled = completed_order['filled']
             open_order.fee = round(completed_order['fee']['cost'], 2)
             open_order.status = completed_order['status']
-            
+            print(completed_order)
             split = user_strategy_pair.pair.index('/')
             first_symbol = user_strategy_pair.pair[:split]
             second_symbol = user_strategy_pair.pair[split+1:]
@@ -152,7 +152,7 @@ def update_orders():
                 open_order.amount = completed_order['amount']
             if open_order.side == 'sell':
                 user_strategy_pair.current_currency = second_symbol
-                user_strategy_pair.current_currency_balance = completed_order['cost']
+                user_strategy_pair.current_currency_balance = completed_order['cost'] - round(completed_order['fee']['cost'], 2)
                 open_order.amount = completed_order['cost']
             open_order.save()
             user_strategy_pair.save()
