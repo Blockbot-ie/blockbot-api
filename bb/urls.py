@@ -1,5 +1,5 @@
 from django.urls import path, include
-from .views import RegisterAPI, LoginAPI, UserAPI, DashBoardData, StrategyList, ExchangeList, ConnectExchange, GetConnectedExchanges, ConnectStrategy, StrategyPairs, OrdersList
+from .views import RegisterAPI, LoginAPI, UserAPI, DashBoardData, StrategyList, ExchangeList, ConnectExchange, GetConnectedExchanges, ConnectStrategy, GetConnectedStrategies, StrategyPairs, OrdersList
 from knox import views as knox_views
 
 urlpatterns = [
@@ -14,6 +14,7 @@ urlpatterns = [
     path('connect-exchange', ConnectExchange.as_view()),
     path('get-connected-exchanges', GetConnectedExchanges.as_view()),
     path('connect-strategies', ConnectStrategy.as_view()),
+    path('get-connected-strategies', GetConnectedStrategies.as_view()),
     path('strategy_pairs', StrategyPairs.as_view()),
     path('orders', OrdersList.as_view())
     ]

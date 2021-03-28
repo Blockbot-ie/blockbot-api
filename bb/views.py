@@ -5,7 +5,7 @@ from django.db.models import Sum
 import ccxt
 from knox.models import AuthToken
 from .models import User, Strategy, Exchange, User_Exchange_Account, User_Strategy_Pair, Strategy_Supported_Pairs, Pairs, Orders
-from .serializers import UserSerializer, RegisterSerializer, LoginSerializer, StrategySerializer, ExchangeSerializer, ConnectExchangeSerializer, ConnectStrategySerializer, StrategySupportedPairsSerializer, OrdersSerializer, GetConnectedExchangesSerializer
+from .serializers import UserSerializer, RegisterSerializer, LoginSerializer, StrategySerializer, ExchangeSerializer, ConnectExchangeSerializer, ConnectStrategySerializer, StrategySupportedPairsSerializer, OrdersSerializer, GetConnectedExchangesSerializer, GetConnectedStrategiesSerializer
 import datetime as dt
 
 # Register API
@@ -118,6 +118,7 @@ class ConnectExchange(mixins.CreateModelMixin,
     serializer_class = ConnectExchangeSerializer
 
     def post(self, request, *args, **kwargs):
+        print(request.data)
         exchange_object = Exchange.objects.filter(exchange_id=request.data['exchange']).first()
         try:
             exchange_id = exchange_object.name
@@ -151,12 +152,12 @@ class ConnectExchange(mixins.CreateModelMixin,
             print(error)
             return Response(content, status=status.HTTP_400_BAD_REQUEST)
 
-class ConnectStrategy(mixins.CreateModelMixin,
-                    generics.ListAPIView):
+class GetConnectedStrategies(mixins.CreateModelMixin,
+                            generics.ListAPIView):
 
     permission_classes = (permissions.IsAuthenticated, )
-    serializer_class = ConnectStrategySerializer
-
+    serializer_class = GetConnectedStrategiesSerializer
+    
     def get_queryset(self):
         queryset = User_Strategy_Pair.objects.all()
         user_id = self.request.user.user_id
@@ -164,6 +165,12 @@ class ConnectStrategy(mixins.CreateModelMixin,
             queryset = queryset.filter(user_id=user_id)
             return queryset
         return queryset.none()
+
+class ConnectStrategy(mixins.CreateModelMixin,
+                    generics.ListAPIView):
+
+    permission_classes = (permissions.IsAuthenticated, )
+    serializer_class = ConnectStrategySerializer
 
     def post(self, request, *args, **kwargs):
         user_exchange_account = User_Exchange_Account.objects.filter(is_active=True, user_exchange_account_id=request.data['user_exchange_account']).first()
@@ -183,11 +190,9 @@ class ConnectStrategy(mixins.CreateModelMixin,
                 current_balance = current_balance[0]['balance']
                 user_strategies_with_current_currency = User_Strategy_Pair.objects.filter(is_active=True, user_exchange_account_id=request.data['user_exchange_account'], current_currency=request.data['current_currency'])
                 balance_taken_by_strategies = user_strategies_with_current_currency.aggregate(Sum('current_currency_balance'))
-                print(balance_taken_by_strategies)
                 if balance_taken_by_strategies['current_currency_balance__sum'] is not None:
                     balance_available = float(current_balance) - balance_taken_by_strategies['current_currency_balance__sum']
                 else:
-                    print('Hello')
                     balance_available = float(current_balance)
                 if balance_available < request.data['current_currency_balance']:
                     amount_required = request.data['current_currency_balance'] - balance_available

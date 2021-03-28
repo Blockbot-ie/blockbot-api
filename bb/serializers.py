@@ -56,7 +56,7 @@ class ConnectExchangeSerializer(serializers.ModelSerializer):
     user_exchange_account_id = serializers.UUIDField()
     class Meta:
         model = User_Exchange_Account
-        fields = ('user_exchange_account_id', 'name', 'api_key', 'api_key', 'api_password', 'exchange', 'user',)
+        fields = ('user_exchange_account_id', 'name', 'api_key', 'api_secret', 'api_password', 'exchange', 'user')
 
     def validate(self, data):
         exchange_account = User_Exchange_Account.objects.filter(user_exchange_account_id=data['user_exchange_account_id']).first()
@@ -68,21 +68,28 @@ class ConnectExchangeSerializer(serializers.ModelSerializer):
 class GetConnectedExchangesSerializer(serializers.ModelSerializer):
     class Meta:
         model = User_Exchange_Account
-        fields = ('user_exchange_account_id', 'name', 'exchange',)
+        fields = ('user_exchange_account_id', 'name', 'exchange', )
         depth = 1
 
 class ConnectStrategySerializer(serializers.ModelSerializer):
     class Meta:
         model = User_Strategy_Pair
-        fields = ('id', 'strategy', 'user_exchange_account', 'pair', 'initial_first_symbol_balance', 'initial_second_symbol_balance', 'current_currency', 'current_currency_balance',)
-        depth = 1
+        fields = ('id', 'strategy', 'user_exchange_account', 'pair', 'initial_first_symbol_balance', 'initial_second_symbol_balance', 'current_currency', 'current_currency_balance', 'user')
     
     def validate(self, data):
+        print(data)
         user_strategy_pair = User_Strategy_Pair.objects.filter(user_exchange_account_id=data['user_exchange_account'], pair=data['pair']).first()
         if user_strategy_pair:
             raise serializers.ValidationError("Pair already in use. You can add more to your pair under strategies")
         else:
             return data
+
+class GetConnectedStrategiesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User_Strategy_Pair
+        fields = ('id', 'strategy', 'user_exchange_account', 'pair', 'initial_first_symbol_balance', 'initial_second_symbol_balance', 'current_currency', 'current_currency_balance')
+        depth = 1
+        
         
 class StrategySupportedPairsSerializer(serializers.ModelSerializer):
     class Meta:
