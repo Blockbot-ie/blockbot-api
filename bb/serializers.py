@@ -77,8 +77,7 @@ class ConnectStrategySerializer(serializers.ModelSerializer):
         fields = ('id', 'strategy', 'user_exchange_account', 'pair', 'initial_first_symbol_balance', 'initial_second_symbol_balance', 'current_currency', 'current_currency_balance', 'user')
     
     def validate(self, data):
-        print(data)
-        user_strategy_pair = User_Strategy_Pair.objects.filter(user_exchange_account_id=data['user_exchange_account'], pair=data['pair']).first()
+        user_strategy_pair = User_Strategy_Pair.objects.filter(user_exchange_account_id=data['user_exchange_account'], pair=data['pair'], strategy=data['strategy']).first()
         if user_strategy_pair:
             raise serializers.ValidationError("Pair already in use. You can add more to your pair under strategies")
         else:

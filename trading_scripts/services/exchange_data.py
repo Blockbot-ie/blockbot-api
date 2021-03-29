@@ -52,7 +52,6 @@ def load_prices(exchange, price_pair, frequency, date_from):
     date_from = str(date_from)
     date_from = date_from+' 00:00:00'
     from_timestamp = exchange.parse8601(date_from)
-    print(from_timestamp)
     candles = exchange.fetch_ohlcv(price_pair, frequency, from_timestamp)
     df = pd.DataFrame(candles, columns=['Opentime', 'Open', 'High', 'Low', 'Close', 'Volume'])
     df['Opentime'] = pd.to_datetime(df['Opentime'], unit='ms')
