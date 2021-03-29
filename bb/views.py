@@ -7,6 +7,7 @@ from knox.models import AuthToken
 from .models import User, Strategy, Exchange, User_Exchange_Account, User_Strategy_Pair, Strategy_Supported_Pairs, Pairs, Orders
 from .serializers import UserSerializer, RegisterSerializer, LoginSerializer, StrategySerializer, ExchangeSerializer, ConnectExchangeSerializer, ConnectStrategySerializer, StrategySupportedPairsSerializer, OrdersSerializer, GetConnectedExchangesSerializer, GetConnectedStrategiesSerializer
 import datetime as dt
+from trading_scripts.services.helpers import send_bug_email
 
 # Register API
 class RegisterAPI(generics.GenericAPIView):
@@ -39,7 +40,6 @@ class LoginAPI(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data
         _, token = AuthToken.objects.create(user)
-        print(UserSerializer(user, context=self.get_serializer_context()).data)
         return Response({
             "user": UserSerializer(user, context=self.get_serializer_context()).data,
             "token": token
@@ -300,3 +300,14 @@ class OrdersList(mixins.CreateModelMixin,
             queryset = Orders.objects.filter(user=user_id).order_by('-created_on')
             return queryset
         return queryset.none()
+    
+class BugReport(generics.GenericAPIView):
+
+    permission_classes = (permissions.IsAuthenticated, )
+
+    def post(self, request, *args, **kwargs):
+        data = request.data
+        send_bug_email(data["type"], data["area"], data["issue"], self.request.user.email)
+
+        content = {'Success': 'Bug report submission successful'}
+        return Response(content, status=status.HTTP_201_CREATED)
