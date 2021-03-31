@@ -7,6 +7,7 @@ from knox.models import AuthToken
 from .models import User, Strategy, Exchange, User_Exchange_Account, User_Strategy_Pair, Strategy_Supported_Pairs, Pairs, Orders
 from .serializers import UserSerializer, RegisterSerializer, LoginSerializer, StrategySerializer, ExchangeSerializer, ConnectExchangeSerializer, ConnectStrategySerializer, StrategySupportedPairsSerializer, OrdersSerializer, GetConnectedExchangesSerializer, GetConnectedStrategiesSerializer
 import datetime as dt
+import time
 from trading_scripts.services.helpers import send_bug_email
 
 # Register API
@@ -320,12 +321,15 @@ class TopUpStrategy(generics.GenericAPIView):
         user_strategy_pair = User_Strategy_Pair.objects.filter(is_active=True, id=request.data['strategy_pair_id']).first()
         user_exchange_account = User_Exchange_Account.objects.filter(is_active=True, user_exchange_account_id=user_strategy_pair.user_exchange_account_id).first()
         exchange = connect_to_users_exchange(user_exchange_account)
+        print(user_strategy_pair.current_currency == request.data['currency'])
         if user_strategy_pair.current_currency == request.data['currency']:
             # check account to see if there is enough of the current currency
             enough = check_account_for_available_balances(user_exchange_account, exchange, request.data['currency'], request.data['amount'])
-            if enough:
+            if enough == True:
                 user_strategy_pair.current_currency_balance += request.data['amount']
                 user_strategy_pair.save()
+            else:
+                return enough
         else:
             # check account to see if there is enough of the selected currency
             # if there is then buy or sell into the current currency
@@ -353,8 +357,9 @@ class TopUpStrategy(generics.GenericAPIView):
                             new_order.status = order['status']
                             new_order.amount = order['amount']
                             new_order.user_strategy_pair = user_strategy_pair
-                            new_order.user = self.request.user.user_id
+                            new_order.user = self.request.user
                             new_order.save()
+                            update_order(order['id'], exchange, user_strategy_pair)
                     except Exception as e:
                         print("An exception occurred: ", e)
                 else:
@@ -376,12 +381,14 @@ class TopUpStrategy(generics.GenericAPIView):
                             new_order.status = order['status']
                             new_order.amount = order['cost']
                             new_order.user_strategy_pair = user_strategy_pair
-                            new_order.user = self.request.user.user_id
+                            new_order.user = self.request.user
                             new_order.save()
+                            update_order(order['id'], exchange, user_strategy_pair)
                     except Exception as e:
                         print("An exception occurred: ", e)
                         # send_email.send_daily_email(None, type(e))
-
+            else:
+                return enough
         content = {'Success': 'Topped up successfully'}
         return Response(content, status=status.HTTP_201_CREATED)
 
@@ -414,12 +421,35 @@ def check_account_for_available_balances(user_exchange_account, exchange, curren
         balance_available = float(current_balance) - balance_taken_by_strategies['current_currency_balance__sum']
     else:
         balance_available = float(current_balance)
+    print(balance_available)
+    print(amount)
     if balance_available < amount:
+        print('Error')
         amount_required = amount - balance_available
         content = {'Error': "Insufficient Funds. Please fund your account with {0} {1}".format(amount_required, currency)}
         return Response(content, status=status.HTTP_400_BAD_REQUEST)
-
     return True
+
+def update_order(order_id, exchange, user_strategy_pair):
+    time.sleep(1)
+    new_order = Orders.objects.filter(order_id=order_id).first()
+    completed_order = exchange.fetch_order(order_id)
+    new_order.filled = completed_order['filled']
+    new_order.fee = round(completed_order['fee']['cost'], 2)
+    new_order.status = completed_order['status']
+    split = user_strategy_pair.pair.index('/')
+    first_symbol = user_strategy_pair.pair[:split]
+    second_symbol = user_strategy_pair.pair[split+1:]
+    if new_order.side == 'buy':
+        user_strategy_pair.current_currency = first_symbol
+        user_strategy_pair.current_currency_balance += completed_order['amount']
+        new_order.amount = completed_order['amount']
+    if new_order.side == 'sell':
+        user_strategy_pair.current_currency = second_symbol
+        user_strategy_pair.current_currency_balance += completed_order['cost'] - round(completed_order['fee']['cost'], 2)
+        new_order.amount = completed_order['cost']
+    new_order.save()
+    user_strategy_pair.save()
 
 
         
