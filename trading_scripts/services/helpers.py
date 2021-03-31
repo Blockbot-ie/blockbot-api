@@ -118,8 +118,6 @@ def buy_or_sell():
             except Exception as e:
                 print(e)
             
-            first_symbol_balance = balances['total'][first_symbol]
-            second_symbol_balance = balances['total'][second_symbol]
             print('Want to be in ', target_currency)
             
             if target_currency == user.current_currency:

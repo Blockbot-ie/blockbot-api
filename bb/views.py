@@ -311,3 +311,115 @@ class BugReport(generics.GenericAPIView):
 
         content = {'Success': 'Bug report submission successful'}
         return Response(content, status=status.HTTP_201_CREATED)
+
+class TopUpStrategy(generics.GenericAPIView):
+
+    permission_classes = (permissions.IsAuthenticated, )
+
+    def post(self, request, *args, **kwargs):
+        user_strategy_pair = User_Strategy_Pair.objects.filter(is_active=True, id=request.data['strategy_pair_id']).first()
+        user_exchange_account = User_Exchange_Account.objects.filter(is_active=True, user_exchange_account_id=user_strategy_pair.user_exchange_account_id).first()
+        exchange = connect_to_users_exchange(user_exchange_account)
+        if user_strategy_pair.current_currency == request.data['currency']:
+            # check account to see if there is enough of the current currency
+            enough = check_account_for_available_balances(user_exchange_account, exchange, request.data['currency'], request.data['amount'])
+            if enough:
+                user_strategy_pair.current_currency_balance += request.data['amount']
+                user_strategy_pair.save()
+        else:
+            # check account to see if there is enough of the selected currency
+            # if there is then buy or sell into the current currency
+            enough = check_account_for_available_balances(user_exchange_account, exchange, request.data['currency'], request.data['amount'])
+            if enough:
+                split = user_strategy_pair.pair.index('/')
+                first_symbol = user_strategy_pair.pair[:split]
+                second_symbol = user_strategy_pair.pair[split+1:]
+                if request.data['currency'] == second_symbol:
+                    print('Buying ', first_symbol)
+                    amount = 1
+                    price = request.data['amount']
+                    try:
+                        order = exchange.create_order(user_strategy_pair.pair, 'market', 'buy', amount, price)
+                        if order:
+                            price = exchange.fetch_ticker(user_strategy_pair.pair)
+                            new_order = Orders()
+                            new_order.order_id = order['id']
+                            new_order.market = order['symbol']
+                            new_order.side = order['side']
+                            new_order.size = order['info']['specified_funds']
+                            new_order.filled = order['filled']
+                            new_order.filled_price = price['close']
+                            new_order.fee = round(order['fee']['cost'], 2)
+                            new_order.status = order['status']
+                            new_order.amount = order['amount']
+                            new_order.user_strategy_pair = user_strategy_pair
+                            new_order.user = self.request.user.user_id
+                            new_order.save()
+                    except Exception as e:
+                        print("An exception occurred: ", e)
+                else:
+                    print('Selling ', second_symbol)
+                    amount = request.data['amount']
+                    try:
+                        order = exchange.create_order(user_strategy_pair.pair, 'market', 'sell', amount)
+                        if order:
+                            
+                            price = exchange.fetch_ticker(user_strategy_pair.pair)
+                            new_order = Orders()
+                            new_order.order_id = order['id']
+                            new_order.market = order['symbol']
+                            new_order.side = order['side']
+                            new_order.size = order['info']['size']
+                            new_order.filled = order['filled']
+                            new_order.filled_price = price['close']
+                            new_order.fee = round(order['fee']['cost'], 2)
+                            new_order.status = order['status']
+                            new_order.amount = order['cost']
+                            new_order.user_strategy_pair = user_strategy_pair
+                            new_order.user = self.request.user.user_id
+                            new_order.save()
+                    except Exception as e:
+                        print("An exception occurred: ", e)
+                        # send_email.send_daily_email(None, type(e))
+
+        content = {'Success': 'Topped up successfully'}
+        return Response(content, status=status.HTTP_201_CREATED)
+
+def connect_to_users_exchange(user_exchange_account):
+    exchange_name = Exchange.objects.filter(exchange_id=user_exchange_account.exchange_id).first()
+    try:
+        if user_exchange_account:
+            exchange_id = exchange_name.name
+            exchange_class = getattr(ccxt, exchange_id)
+            exchange = exchange_class({
+                'apiKey': user_exchange_account.api_key,
+                'secret': user_exchange_account.api_secret,
+                'password': user_exchange_account.api_password,
+                'timeout': 30000,
+                'enableRateLimit': True,
+            })
+    except Exception as error:
+        content = {'Error': str(error)}
+        return Response(content, status=status.HTTP_400_BAD_REQUEST)
+    return exchange
+
+
+def check_account_for_available_balances(user_exchange_account, exchange, currency, amount):    
+    balance = exchange.fetch_balance()
+    current_balance = [x for x in balance["info"] if x['currency'] == currency]
+    current_balance = current_balance[0]['balance']
+    user_strategies_with_current_currency = User_Strategy_Pair.objects.filter(is_active=True, user_exchange_account_id=user_exchange_account.user_exchange_account_id, current_currency=currency)
+    balance_taken_by_strategies = user_strategies_with_current_currency.aggregate(Sum('current_currency_balance'))
+    if balance_taken_by_strategies['current_currency_balance__sum'] is not None:
+        balance_available = float(current_balance) - balance_taken_by_strategies['current_currency_balance__sum']
+    else:
+        balance_available = float(current_balance)
+    if balance_available < amount:
+        amount_required = amount - balance_available
+        content = {'Error': "Insufficient Funds. Please fund your account with {0} {1}".format(amount_required, currency)}
+        return Response(content, status=status.HTTP_400_BAD_REQUEST)
+
+    return True
+
+
+        
