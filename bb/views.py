@@ -18,6 +18,17 @@ class RegisterAPI(generics.GenericAPIView):
     """
     serializer_class = RegisterSerializer
 
+    def perform_create(self, serializer):
+        """Override perform_create to create user"""
+        user = User.objects.create_user(
+            username=serializer.validated_data["username"],
+            email=serializer.validated_data["email"],
+            first_name=serializer.validated_data["first_name"],
+            last_name=serializer.validated_data["last_name"],
+            password=serializer.validated_data["password"] 
+        )
+        serializer = self.get_serializer(user)
+
     def post(self, request, *args, **kwargs):
         try:
             
@@ -150,7 +161,6 @@ class ConnectExchange(mixins.CreateModelMixin,
     serializer_class = ConnectExchangeSerializer
 
     def post(self, request, *args, **kwargs):
-        print(request.data)
         exchange_object = Exchange.objects.filter(exchange_id=request.data['exchange']).first()
         try:
             exchange_id = exchange_object.name
@@ -421,10 +431,7 @@ def check_account_for_available_balances(user_exchange_account, exchange, curren
         balance_available = float(current_balance) - balance_taken_by_strategies['current_currency_balance__sum']
     else:
         balance_available = float(current_balance)
-    print(balance_available)
-    print(amount)
     if balance_available < amount:
-        print('Error')
         amount_required = amount - balance_available
         content = {'Error': "Insufficient Funds. Please fund your account with {0} {1}".format(amount_required, currency)}
         return Response(content, status=status.HTTP_400_BAD_REQUEST)
