@@ -18,23 +18,10 @@ class RegisterAPI(generics.GenericAPIView):
     """
     serializer_class = RegisterSerializer
 
-    def perform_create(self, serializer):
-        """Override perform_create to create user"""
-        user = User.objects.create_user(
-            username=serializer.validated_data["username"],
-            email=serializer.validated_data["email"],
-            first_name=serializer.validated_data["first_name"],
-            last_name=serializer.validated_data["last_name"],
-            password=serializer.validated_data["password"] 
-        )
-        serializer = self.get_serializer(user)
-
     def post(self, request, *args, **kwargs):
         try:
-            
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
-
             user = serializer.save()
         except Exception as error:
             print(error)
