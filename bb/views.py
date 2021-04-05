@@ -23,6 +23,12 @@ class RegisterAPI(generics.GenericAPIView):
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             user = serializer.save()
+            new_user = User.objects.filter(email=user.email).first()
+            print(request.data  )
+            new_user.first_name = request.data["first_name"]
+            new_user.last_name = request.data["last_name"]
+            new_user.last_login = dt.datetime.utcnow()
+            new_user.save()
         except Exception as error:
             print(error)
         return Response({

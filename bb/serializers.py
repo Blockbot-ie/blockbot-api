@@ -23,9 +23,6 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         user = User.objects.create_user(validated_data['username'], validated_data['email'], validated_data['password'])
-        user.first_name = validated_data['first_name']
-        user.last_name = validated_data['last_name']
-        user.last_login = dt.datetime.now
         return user
 
 # Login Serializer
@@ -36,7 +33,9 @@ class LoginSerializer(serializers.Serializer):
     def validate(self, data):
         user = authenticate(**data)
         if user and user.is_active:
-            user.last_login = dt.datetime.now
+            update_user = User.objects.filter(username=data["username"]).first()
+            update_user.last_login = dt.datetime.utcnow()
+            update_user.save()
             return user
         raise serializers.ValidationError("Incorrect Credentials")
 
