@@ -1,5 +1,7 @@
 from rest_framework import permissions, status, generics, mixins
 from rest_framework.response import Response
+from django.http import JsonResponse
+import json
 from django.db import IntegrityError
 from django.db.models import Sum
 import ccxt
@@ -139,12 +141,21 @@ class GetConnectedExchanges(mixins.CreateModelMixin,
     permission_classes = (permissions.IsAuthenticated, )
     serializer_class = GetConnectedExchangesSerializer
     
-    def get_queryset(self):
-        queryset = User_Exchange_Account.objects.all()
+    def get(self, request, *args, **kwargs):
+        queryset = User_Exchange_Account.objects.filter(user_id=self.request.user.user_id)
+        content = []
         user_id = self.request.user.user_id
         if user_id is not None:
-            queryset = queryset.filter(user_id=user_id)
-            return queryset
+            for exchange in queryset:
+                user_strategy_pairs = User_Strategy_Pair.objects.filter(user_exchange_account_id=exchange.user_exchange_account_id)
+                count = user_strategy_pairs.count()
+                serializer = self.get_serializer(exchange)
+                data = {
+                    "exchange": serializer.data,
+                    "strategy_count": count
+                }
+                content.append(data)
+            return Response(content, status=status.HTTP_200_OK)
         return queryset.none()
 
 class ConnectExchange(mixins.CreateModelMixin,
