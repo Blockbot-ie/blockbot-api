@@ -324,23 +324,26 @@ class TopUpStrategy(generics.GenericAPIView):
         user_strategy_pair = User_Strategy_Pair.objects.filter(is_active=True, id=request.data['strategy_pair_id']).first()
         user_exchange_account = User_Exchange_Account.objects.filter(is_active=True, user_exchange_account_id=user_strategy_pair.user_exchange_account_id).first()
         exchange = connect_to_users_exchange(user_exchange_account)
-        print(user_strategy_pair.current_currency == request.data['currency'])
+        split = user_strategy_pair.pair.index('/')
+        first_symbol = user_strategy_pair.pair[:split]
+        second_symbol = user_strategy_pair.pair[split+1:]
         if user_strategy_pair.current_currency == request.data['currency']:
             # check account to see if there is enough of the current currency
             enough = check_account_for_available_balances(user_exchange_account, exchange, request.data['currency'], request.data['amount'])
             if enough == True:
                 user_strategy_pair.current_currency_balance += request.data['amount']
-                user_strategy_pair.save()
+                if user_strategy_pair.current_currency == first_symbol:
+                    user_strategy_pair.initial_first_symbol_balance += request.data['amount']
+                else:
+                    user_strategy_pair.initial_second_symbol_balance += request.data['amount']
             else:
+                # not enough balance in account
                 return enough
         else:
             # check account to see if there is enough of the selected currency
             # if there is then buy or sell into the current currency
             enough = check_account_for_available_balances(user_exchange_account, exchange, request.data['currency'], request.data['amount'])
             if enough:
-                split = user_strategy_pair.pair.index('/')
-                first_symbol = user_strategy_pair.pair[:split]
-                second_symbol = user_strategy_pair.pair[split+1:]
                 if request.data['currency'] == second_symbol:
                     print('Buying ', first_symbol)
                     amount = 1
@@ -363,6 +366,7 @@ class TopUpStrategy(generics.GenericAPIView):
                             new_order.user = self.request.user
                             new_order.save()
                             update_order(order['id'], exchange, user_strategy_pair)
+                            user_strategy_pair.initial_second_symbol_balance += request.data['amount']
                     except Exception as e:
                         print("An exception occurred: ", e)
                 else:
@@ -387,11 +391,13 @@ class TopUpStrategy(generics.GenericAPIView):
                             new_order.user = self.request.user
                             new_order.save()
                             update_order(order['id'], exchange, user_strategy_pair)
+                            user_strategy_pair.initial_first_symbol_balance += request.data['amount']
                     except Exception as e:
                         print("An exception occurred: ", e)
                         # send_email.send_daily_email(None, type(e))
             else:
                 return enough
+        user_strategy_pair.save()
         content = {'Success': 'Topped up successfully'}
         return Response(content, status=status.HTTP_201_CREATED)
 
@@ -443,10 +449,12 @@ def update_order(order_id, exchange, user_strategy_pair):
     if new_order.side == 'buy':
         user_strategy_pair.current_currency = first_symbol
         user_strategy_pair.current_currency_balance += completed_order['amount']
+        user_strategy_pair.initial_first_symbol_balance += completed_order['amount']
         new_order.amount = completed_order['amount']
     if new_order.side == 'sell':
         user_strategy_pair.current_currency = second_symbol
         user_strategy_pair.current_currency_balance += completed_order['cost'] - round(completed_order['fee']['cost'], 2)
+        user_strategy_pair.initial_second_symbol_balance += completed_order['cost'] - round(completed_order['fee']['cost'], 2)
         new_order.amount = completed_order['cost']
     new_order.save()
     user_strategy_pair.save()
