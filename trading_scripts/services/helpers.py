@@ -62,9 +62,9 @@ def send_bug_email(issue_type, area, issue, sender):
         html = """\
                 <html>
                 <body>
-                    <h4>{0}</h4>
-                    <h2>{1}</h2>
-                    <p>{2}</p>                    
+                    <p><b>Type: </b>{0}</p>
+                    <p><b>Area: </b>{1}</p>
+                    <p><b>Description: </b>{2}</p>
                 </body>
                 </html>
                 """.format(issue_type, area, issue)
