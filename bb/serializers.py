@@ -31,13 +31,42 @@ class LoginSerializer(serializers.Serializer):
     password = serializers.CharField()
 
     def validate(self, data):
-        user = authenticate(**data)
-        if user and user.is_active:
-            update_user = User.objects.filter(username=data["username"]).first()
-            update_user.last_login = dt.datetime.utcnow()
-            update_user.save()
-            return user
-        raise serializers.ValidationError("Incorrect Credentials")
+        """ Authenticate a user based on email address as the user name. """
+        try:
+            user = User.objects.get(email=data["username"])
+            if user.check_password(data["password"]):
+                if user.is_active:
+                    update_user = User.objects.filter(email=data["username"]).first()
+                    update_user.last_login = dt.datetime.utcnow()
+                    update_user.save()
+                    return user
+        except User.DoesNotExist:
+            try:
+                user = User.objects.get(username=data["username"])
+                if user.check_password(data["password"]):
+                    if user.is_active:
+                        update_user = User.objects.filter(username=data["username"]).first()
+                        update_user.last_login = dt.datetime.utcnow()
+                        update_user.save()
+                        return user
+            except User.DoesNotExist:
+                raise serializers.ValidationError("Incorrect Credentials")
+
+    # def get_user(self, user_id):
+    #     """ Get a User object from the user_id. """
+    #     try:
+    #         return User.objects.get(pk=user_id)
+    #     except User.DoesNotExist:
+    #         return None
+
+    # def validate(self, data):
+    #     user = authenticate(**data)
+    #     if user and user.is_active:
+    #         update_user = User.objects.filter(username=data["username"]).first()
+    #         update_user.last_login = dt.datetime.utcnow()
+    #         update_user.save()
+    #         return user
+    #     raise serializers.ValidationError("Incorrect Credentials")
 
 class StrategySerializer(serializers.ModelSerializer):
 
