@@ -57,7 +57,7 @@ def twenty_ten_MA(strategy):
         for pair in strategy_pairs:
             symbol = Pairs.objects.filter(pair_id=pair.pair_id).first()
             start_time_utc = dt.datetime.utcnow().replace(minute=0, second=0, microsecond=0)
-            date_from = dt.datetime.today() + dt.timedelta(weeks=-42)
+            date_from = dt.datetime.today() + dt.timedelta(weeks=-30)
             df = exchange_data.load_prices(exchange='coinbasepro', price_pair=symbol.symbol, frequency='1d', date_from=date_from)
             # df.loc['2020-01-01': ]  # Doesn't work when prices are zero initially so avoiding 2010
 
@@ -111,16 +111,19 @@ def multi_ma(strategy):
             symbol = Pairs.objects.filter(pair_id=pair.pair_id).first()
             start_time_utc = dt.datetime.utcnow().replace(minute=0, second=0, microsecond=0)
             start_date = dt.datetime.today()
+            san_df = exchange_data.get_san_data()
             weeks = 200
             df = []
             while weeks > 0:
                 date_from = start_date + dt.timedelta(weeks=-weeks)
                 date_to = start_date + dt.timedelta(weeks=-weeks+40)
-                df.append(exchange_data.load_prices(exchange='coinbase', price_pair=symbol.symbol, frequency='1d', date_from=date_from, date_to=date_to))
+                df.append(exchange_data.load_prices(exchange='coinbasepro', price_pair=symbol.symbol, frequency='1d', date_from=date_from, date_to=date_to))
                 weeks -= 40
-                
-            df = pd.concat(df, ignore_index=True)
-            print(df)
+
+            df = pd.concat(df)
+
+            df = pd.concat([df, san_df])
+            newdf = df.drop_duplicates(subset = ['Opentime'], keep = 'first').reset_index(drop = True)
             df['Close'] = df['Close'].shift(-1)
             df['20_Week_MA'] = df['Close'].rolling(7*20, min_periods=7*20).mean()
             df['15_Week_MA'] = df['Close'].rolling(7*15, min_periods=7*15).mean()
