@@ -26,7 +26,7 @@ def twenty_MA(strategy):
             
             split = symbol.symbol.index('/')
             first_symbol = symbol.symbol[:split]
-            second_symbol = symbol.symbol[split:]
+            second_symbol = symbol.symbol[split+1:]
             if current_price > ma:
                 target_currency = first_symbol
             else:
@@ -79,7 +79,7 @@ def twenty_ten_MA(strategy):
             print(df.tail())
             split = symbol.symbol.index('/')
             first_symbol = symbol.symbol[:split]
-            second_symbol = symbol.symbol[split:]
+            second_symbol = symbol.symbol[split+1:]
             if df.iloc[-1]['signal'] == 1:
                 target_currency = first_symbol
             else:

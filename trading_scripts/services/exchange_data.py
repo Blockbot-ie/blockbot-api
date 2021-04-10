@@ -27,12 +27,8 @@ def get_latest_ma(df_data=None, period=None, num_of_periods=None):
 
     date_to = df.index.max() - timedelta(weeks=weeks, days=days, hours=hours, minutes=minutes, seconds=seconds)
 
-    print(date_to)
-
     df = df.loc[df.index >= date_to]
     ma = df['Close'].mean()
-
-    print(date_to)
 
     return ma
 

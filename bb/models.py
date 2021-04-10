@@ -114,3 +114,11 @@ class Strategies_Suggested(models.Model):
     pair = models.ForeignKey(Strategy_Supported_Pairs, null=True, on_delete=models.SET_NULL)
     target_currency = models.CharField(_('Target Currency'), max_length=50, blank=True)
     tick = models.DateTimeField(_('Tick'), null=True, default=timezone.now)
+
+class User_Strategy_Pair_Daily_Balance(models.Model):
+    user_strategy_pair = models.ForeignKey(User_Strategy_Pair, null=True, on_delete=models.SET_NULL)
+    price = models.FloatField(_('Pair Price'), default=0)
+    hodl_value = models.FloatField(_('HODL Value'), default=0)
+    strategy_value = models.FloatField(_('Strategy Value'), default=0)
+    is_top_up = models.BooleanField(_('active'), default=False)
+    created_on = models.DateField(_('created_on'), default=timezone.now)
