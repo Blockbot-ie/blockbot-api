@@ -6,7 +6,7 @@ from django.db import IntegrityError
 from django.db.models import Sum
 import ccxt
 from knox.models import AuthToken
-from .models import User, Strategy, Exchange, User_Exchange_Account, User_Strategy_Pair, Strategy_Supported_Pairs, Pairs, Orders
+from .models import User, Strategy, Exchange, User_Exchange_Account, User_Strategy_Pair, Strategy_Supported_Pairs, Pairs, Orders, User_Strategy_Pair_Daily_Balance
 from .serializers import UserSerializer, RegisterSerializer, LoginSerializer, StrategySerializer, ExchangeSerializer, ConnectExchangeSerializer, ConnectStrategySerializer, StrategySupportedPairsSerializer, OrdersSerializer, GetConnectedExchangesSerializer, GetConnectedStrategiesSerializer
 import datetime as dt
 import time
@@ -409,6 +409,9 @@ class TopUpStrategy(generics.GenericAPIView):
             else:
                 return enough
         user_strategy_pair.save()
+        daily_balance = User_Strategy_Pair_Daily_Balance.objects.filter(user_strategy_pair=user_strategy_pair.id, created_on=dt.date.today()).first()
+        daily_balance.is_top_up = True
+        daily_balance.save()
         content = {'Success': 'Topped up successfully'}
         return Response(content, status=status.HTTP_201_CREATED)
 
