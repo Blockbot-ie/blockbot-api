@@ -19,7 +19,8 @@ def twenty_MA(strategy):
             symbol = Pairs.objects.filter(pair_id=pair.pair_id).first()
             start_time_utc = dt.datetime.utcnow().replace(minute=0, second=0, microsecond=0)
             date_from = dt.datetime.today() + dt.timedelta(weeks=-20)
-            df = exchange_data.load_prices(exchange='coinbasepro', price_pair=symbol.symbol, frequency='1d', date_from=date_from)
+            date_to = dt.datetime.today()
+            df = exchange_data.load_prices(exchange='coinbasepro', price_pair=symbol.symbol, frequency='1d', date_from=date_from, date_to=date_to)
             ma = exchange_data.get_latest_ma(df_data=df, period='w', num_of_periods=20)
 
             current_price = df.iloc[-1]['Close']
@@ -58,7 +59,8 @@ def twenty_ten_MA(strategy):
             symbol = Pairs.objects.filter(pair_id=pair.pair_id).first()
             start_time_utc = dt.datetime.utcnow().replace(minute=0, second=0, microsecond=0)
             date_from = dt.datetime.today() + dt.timedelta(weeks=-30)
-            df = exchange_data.load_prices(exchange='coinbasepro', price_pair=symbol.symbol, frequency='1d', date_from=date_from)
+            date_to = dt.datetime.today()
+            df = exchange_data.load_prices(exchange='coinbasepro', price_pair=symbol.symbol, frequency='1d', date_from=date_from, date_to=date_to)
             # df.loc['2020-01-01': ]  # Doesn't work when prices are zero initially so avoiding 2010
 
             df['20_Week_MA'] = df['Close'].rolling(7*20, min_periods=7*20).mean()
@@ -76,7 +78,6 @@ def twenty_ten_MA(strategy):
             df.loc[(df['Close'] - df['10_Week_MA'] < 0) & (df['bubble'] == 1), 'signal'] = 0
             df.loc[(df['Close'] - df['10_Week_MA'] > 0) & (df['bubble'] == 1), 'signal'] = 1
             df['signal'] = df['signal'].ffill()
-            print(df.tail())
             split = symbol.symbol.index('/')
             first_symbol = symbol.symbol[:split]
             second_symbol = symbol.symbol[split+1:]
@@ -84,7 +85,7 @@ def twenty_ten_MA(strategy):
                 target_currency = first_symbol
             else:
                 target_currency = second_symbol
-            # target_currency = 'USDC'
+            target_currency = 'USDC'
             data = Strategies_Suggested()
             data.start_time_utc = start_time_utc
             data.target_currency = target_currency
