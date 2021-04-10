@@ -58,17 +58,16 @@ def load_prices(exchange, price_pair, frequency, date_from, date_to):
     return df
 
 def get_san_data():
-    df_san_bitcoin_d = san.get("price_usd/bitcoin",
-                          from_date="2021-03-01T00:00:00Z",
-                          to_date="2022-01-01T00:00:00Z",
-                          interval="1d",
-                          aggregation='FIRST')
-
-    df = df_san_bitcoin_d.copy()
-    df.columns = ['Bitcoin_Price']
-    df.index.name = 'Start_Datetime_UTC'
+    df = san.get("ohlcv/bitcoin",
+                      from_date="2017-01-01T00:00:00Z",
+                      to_date="2020-01-01T00:00:00Z",
+                      interval="1d",
+                      aggregation='FIRST')
+    
+    df = pd.DataFrame(df, columns=['openPriceUsd', 'closePriceUsd', 'highPriceUsd', 'lowPriceUsd', 'volume'])
+    df.columns = ['Open', 'High', 'Low', 'Close', 'Volume']
+    df.index.name = 'Opentime'
+    df.index = df_san_bitcoin_d.index.strftime('%Y-%m-%d')
     df.index = df.index.tz_localize(None)
-
     df = df.sort_index()
-
     return df
