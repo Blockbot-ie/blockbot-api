@@ -124,6 +124,7 @@ def multi_ma(strategy):
             df = pd.concat(df)
 
             df = pd.concat([df, san_df])
+            print(df)
             newdf = df.drop_duplicates(subset = ['Opentime'], keep = 'first').reset_index(drop = True)
             df['Close'] = df['Close'].shift(-1)
             df['20_Week_MA'] = df['Close'].rolling(7*20, min_periods=7*20).mean()

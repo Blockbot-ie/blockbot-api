@@ -183,8 +183,12 @@ class ConnectExchange(mixins.CreateModelMixin,
             print(error)
             content = {'Error': str(error)}
             return Response(content, status=status.HTTP_400_BAD_REQUEST)
+        
+        user_account_with_current_exchange = User_Exchange_Account.objects.filter(exchange_id=exchange_object.exchange_id, user_id=self.request.user.user_id)
+        request.data['name'] = exchange_object.display_name + " " + str(user_account_with_current_exchange.count() + 1)
         request.data['user_exchange_account_id'] = account_id
         request.data['user'] = self.request.user.user_id
+        
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
