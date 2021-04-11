@@ -150,9 +150,12 @@ class GetConnectedExchanges(mixins.CreateModelMixin,
                 user_strategy_pairs = User_Strategy_Pair.objects.filter(user_exchange_account_id=exchange.user_exchange_account_id)
                 count = user_strategy_pairs.count()
                 serializer = self.get_serializer(exchange)
+                ccxt_exchange = connect_to_users_exchange(exchange)
+                available_amounts = available_balances(exchange, ccxt_exchange)
                 data = {
                     "exchange": serializer.data,
-                    "strategy_count": count
+                    "strategy_count": count,
+                    "available_balances": available_amounts
                 }
                 content.append(data)
             return Response(content, status=status.HTTP_200_OK)
@@ -454,6 +457,20 @@ def check_account_for_available_balances(user_exchange_account, exchange, curren
         return Response(content, status=status.HTTP_400_BAD_REQUEST)
     return True
 
+def available_balances(user_exchange_account, exchange):
+    balance = exchange.fetch_balance()
+    available_amounts = {}
+    for i in ['USDC', 'BTC', 'ETH']:
+        new_balance = [x for x in balance["info"] if x['currency'] == i]
+        user_strategies_with_current_currency = User_Strategy_Pair.objects.filter(is_active=True, user_exchange_account_id=user_exchange_account.user_exchange_account_id, current_currency=i)
+        balance_taken_by_strategies = user_strategies_with_current_currency.aggregate(Sum('current_currency_balance'))
+        if balance_taken_by_strategies['current_currency_balance__sum'] is not None:
+            available_amounts[i] = float(new_balance[0]['balance']) - balance_taken_by_strategies['current_currency_balance__sum']
+        else:
+            available_amounts[i] = float(new_balance[0]['balance'])
+
+    return available_amounts
+    
 def update_order(order_id, exchange, user_strategy_pair):
     time.sleep(1)
     new_order = Orders.objects.filter(order_id=order_id).first()
