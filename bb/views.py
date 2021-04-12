@@ -6,7 +6,7 @@ from django.db import IntegrityError
 from django.db.models import Sum
 import ccxt
 from knox.models import AuthToken
-from .models import User, Strategy, Exchange, User_Exchange_Account, User_Strategy_Pair, Strategy_Supported_Pairs, Pairs, Orders, User_Strategy_Pair_Daily_Balance
+from .models import User, Strategy, Exchange, User_Exchange_Account, User_Strategy_Pair, Strategy_Supported_Pairs, Pairs, Orders, User_Strategy_Pair_Daily_Balance, Exchange_Supported_Pairs
 from .serializers import UserSerializer, RegisterSerializer, LoginSerializer, StrategySerializer, ExchangeSerializer, ConnectExchangeSerializer, ConnectStrategySerializer, StrategySupportedPairsSerializer, OrdersSerializer, GetConnectedExchangesSerializer, GetConnectedStrategiesSerializer
 import datetime as dt
 import time
@@ -286,13 +286,15 @@ class StrategyPairs(mixins.CreateModelMixin,
         content = []
         for pair in strategy_pairs:
             pair_entity = Pairs.objects.filter(pair_id=pair.pair_id).first()
+            exchanges = Exchange_Supported_Pairs.objects.filter(pair_id=pair_entity.pair_id).values('exchange_id')
             pair_object = {
                 "strategy_id": pair.strategy_id,
                 "symbol": pair_entity.symbol,
                 "ticker_1":  pair_entity.ticker_1,
                 "ticker_2": pair_entity.ticker_2,
                 "ticker_1_min_value": pair_entity.ticker_1_min_value,
-                "ticker_2_min_value": pair_entity.ticker_2_min_value
+                "ticker_2_min_value": pair_entity.ticker_2_min_value,
+                "supported_exchanges": exchanges
             }
             content.append(pair_object)            
         return Response(content, status=status.HTTP_200_OK)

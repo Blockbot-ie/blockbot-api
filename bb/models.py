@@ -122,3 +122,7 @@ class User_Strategy_Pair_Daily_Balance(models.Model):
     strategy_value = models.FloatField(_('Strategy Value'), default=0)
     is_top_up = models.BooleanField(_('active'), default=False)
     created_on = models.DateField(_('created_on'), default=timezone.now)
+
+class Exchange_Supported_Pairs(models.Model):
+    exchange = models.ForeignKey(Exchange, null=True, on_delete=models.SET_NULL)
+    pair = models.ForeignKey(Pairs, null=True, on_delete=models.SET_NULL)
