@@ -23,20 +23,22 @@ class RegisterAPI(generics.GenericAPIView):
     def post(self, request, *args, **kwargs):
         try:
             serializer = self.get_serializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            user = serializer.save()
-            new_user = User.objects.filter(email=user.email).first()
-            print(request.data  )
-            new_user.first_name = request.data["first_name"]
-            new_user.last_name = request.data["last_name"]
-            new_user.last_login = dt.datetime.utcnow()
-            new_user.save()
-        except Exception as error:
-            print(error)
-        return Response({
-            "user": UserSerializer(user, context=self.get_serializer_context()).data,
-            "token": AuthToken.objects.create(user)[1]
-        })
+            if serializer.is_valid():
+                user = serializer.save()
+                new_user = User.objects.filter(email=user.email).first()
+                new_user.first_name = request.data["first_name"]
+                new_user.last_name = request.data["last_name"]
+                new_user.last_login = dt.datetime.utcnow()
+                new_user.save()
+                return Response({
+                    "user": UserSerializer(user, context=self.get_serializer_context()).data,
+                    "token": AuthToken.objects.create(user)[1]
+                    })
+            else:
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            print(e)
+            return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
 
 # Login API
 class LoginAPI(generics.GenericAPIView):

@@ -52,22 +52,6 @@ class LoginSerializer(serializers.Serializer):
             except User.DoesNotExist:
                 raise serializers.ValidationError("Incorrect Credentials")
 
-    # def get_user(self, user_id):
-    #     """ Get a User object from the user_id. """
-    #     try:
-    #         return User.objects.get(pk=user_id)
-    #     except User.DoesNotExist:
-    #         return None
-
-    # def validate(self, data):
-    #     user = authenticate(**data)
-    #     if user and user.is_active:
-    #         update_user = User.objects.filter(username=data["username"]).first()
-    #         update_user.last_login = dt.datetime.utcnow()
-    #         update_user.save()
-    #         return user
-    #     raise serializers.ValidationError("Incorrect Credentials")
-
 class StrategySerializer(serializers.ModelSerializer):
 
     class Meta:
