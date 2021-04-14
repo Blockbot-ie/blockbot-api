@@ -1,13 +1,12 @@
-from django.urls import path, include
+from django.urls import path, include, re_path
 from .views import RegisterAPI, LoginAPI, UserAPI, DashBoardData, StrategyList, ExchangeList, ConnectExchange, GetConnectedExchanges, ConnectStrategy, GetConnectedStrategies, StrategyPairs, OrdersList, BugReport, TopUpStrategy
-from knox import views as knox_views
+from django.views.generic import TemplateView
 
 urlpatterns = [
-    path('auth', include('knox.urls')),
-    path('auth/register', RegisterAPI.as_view()),
-    path('auth/login', LoginAPI.as_view()),
-    path('auth/user', UserAPI.as_view()),
-    path('auth/logout', knox_views.LogoutView.as_view(), name='knox_logout'),
+    path('auth/', include('djoser.urls')),
+    path('auth/', include('djoser.urls.jwt')),
+    path('auth/', include('djoser.social.urls')),
+    
     path('dashboard-data', DashBoardData.as_view()),
     path('strategies/', StrategyList.as_view()),
     path('exchanges/', ExchangeList.as_view()),
@@ -20,3 +19,5 @@ urlpatterns = [
     path('submit-bug-report', BugReport.as_view()),
     path('top-up-strategy', TopUpStrategy.as_view())
     ]
+
+urlpatterns += [re_path(r'^.*', TemplateView.as_view(template_name='index.html'))]

@@ -5,7 +5,7 @@ import json
 from django.db import IntegrityError
 from django.db.models import Sum
 import ccxt
-from knox.models import AuthToken
+# from knox.models import AuthToken
 from .models import User, Strategy, Exchange, User_Exchange_Account, User_Strategy_Pair, Strategy_Supported_Pairs, Pairs, Orders, User_Strategy_Pair_Daily_Balance, Exchange_Supported_Pairs
 from .serializers import UserSerializer, RegisterSerializer, LoginSerializer, StrategySerializer, ExchangeSerializer, ConnectExchangeSerializer, ConnectStrategySerializer, StrategySupportedPairsSerializer, OrdersSerializer, GetConnectedExchangesSerializer, GetConnectedStrategiesSerializer
 import datetime as dt
@@ -20,39 +20,39 @@ class RegisterAPI(generics.GenericAPIView):
     """
     serializer_class = RegisterSerializer
 
-    def post(self, request, *args, **kwargs):
-        try:
-            serializer = self.get_serializer(data=request.data)
-            if serializer.is_valid():
-                user = serializer.save()
-                new_user = User.objects.filter(email=user.email).first()
-                new_user.first_name = request.data["first_name"]
-                new_user.last_name = request.data["last_name"]
-                new_user.last_login = dt.datetime.utcnow()
-                new_user.save()
-                return Response({
-                    "user": UserSerializer(user, context=self.get_serializer_context()).data,
-                    "token": AuthToken.objects.create(user)[1]
-                    })
-            else:
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            print(e)
-            return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
+    # def post(self, request, *args, **kwargs):
+    #     try:
+    #         serializer = self.get_serializer(data=request.data)
+    #         if serializer.is_valid():
+    #             user = serializer.save()
+    #             new_user = User.objects.filter(email=user.email).first()
+    #             new_user.first_name = request.data["first_name"]
+    #             new_user.last_name = request.data["last_name"]
+    #             new_user.last_login = dt.datetime.utcnow()
+    #             new_user.save()
+    #             return Response({
+    #                 "user": UserSerializer(user, context=self.get_serializer_context()).data,
+    #                 "token": AuthToken.objects.create(user)[1]
+    #                 })
+    #         else:
+    #             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    #     except Exception as e:
+    #         print(e)
+    #         return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
 
 # Login API
 class LoginAPI(generics.GenericAPIView):
     serializer_class = LoginSerializer
 
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data
-        _, token = AuthToken.objects.create(user)
-        return Response({
-            "user": UserSerializer(user, context=self.get_serializer_context()).data,
-            "token": token
-        })
+    # def post(self, request, *args, **kwargs):
+    #     serializer = self.get_serializer(data=request.data)
+    #     serializer.is_valid(raise_exception=True)
+    #     user = serializer.validated_data
+    #     _, token = AuthToken.objects.create(user)
+    #     return Response({
+    #         "user": UserSerializer(user, context=self.get_serializer_context()).data,
+    #         "token": token
+    #     })
 
 # Get User API
 class UserAPI(generics.RetrieveAPIView):
@@ -74,7 +74,7 @@ class DashBoardData(mixins.ListModelMixin,
     permission_classes = (permissions.IsAuthenticated, )
 
     def get(self, request, *args, **kwargs):
-        user_pairs = User_Strategy_Pair.objects.filter(user_id=self.request.user.user_id, is_active=True) 
+        user_pairs = User_Strategy_Pair.objects.filter(user_id=self.request.user.id, is_active=True) 
         
         inc_or_dec_vs_hodl = []
         for pair in user_pairs:
@@ -144,9 +144,9 @@ class GetConnectedExchanges(mixins.CreateModelMixin,
     serializer_class = GetConnectedExchangesSerializer
     
     def get(self, request, *args, **kwargs):
-        queryset = User_Exchange_Account.objects.filter(user_id=self.request.user.user_id)
+        queryset = User_Exchange_Account.objects.filter(user_id=self.request.user.id)
         content = []
-        user_id = self.request.user.user_id
+        user_id = self.request.user.id
         if user_id is not None:
             for exchange in queryset:
                 user_strategy_pairs = User_Strategy_Pair.objects.filter(user_exchange_account_id=exchange.user_exchange_account_id)
@@ -189,10 +189,10 @@ class ConnectExchange(mixins.CreateModelMixin,
             content = {'Error': str(error)}
             return Response(content, status=status.HTTP_400_BAD_REQUEST)
         
-        user_account_with_current_exchange = User_Exchange_Account.objects.filter(exchange_id=exchange_object.exchange_id, user_id=self.request.user.user_id)
+        user_account_with_current_exchange = User_Exchange_Account.objects.filter(exchange_id=exchange_object.exchange_id, user_id=self.request.user.id)
         request.data['name'] = exchange_object.display_name + " " + str(user_account_with_current_exchange.count() + 1)
         request.data['user_exchange_account_id'] = account_id
-        request.data['user'] = self.request.user.user_id
+        request.data['user'] = self.request.user.id
         
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -215,7 +215,7 @@ class GetConnectedStrategies(mixins.CreateModelMixin,
     
     def get_queryset(self):
         queryset = User_Strategy_Pair.objects.all()
-        user_id = self.request.user.user_id
+        user_id = self.request.user.id
         if user_id is not None:
             queryset = queryset.filter(user_id=user_id)
             return queryset
@@ -259,7 +259,7 @@ class ConnectStrategy(mixins.CreateModelMixin,
             content = {'Error': str(error)}
             return Response(content, status=status.HTTP_400_BAD_REQUEST)
 
-        request.data['user'] = self.request.user.user_id
+        request.data['user'] = self.request.user.id
         if request.data['initial_first_symbol_balance'] is None or request.data['initial_first_symbol_balance'] == 0:
             request.data['initial_first_symbol_balance'] = request.data['initial_second_symbol_balance']/price['close']
         else:
@@ -267,7 +267,7 @@ class ConnectStrategy(mixins.CreateModelMixin,
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        user = User.objects.filter(user_id=self.request.user.user_id).first()
+        user = User.objects.filter(id=self.request.user.id).first()
         user.is_connected = True
         user.save()
         try:
@@ -302,7 +302,7 @@ class StrategyPairs(mixins.CreateModelMixin,
         return Response(content, status=status.HTTP_200_OK)
     
     def post(self, request, *args, **kwargs):
-        request.data['user'] = self.request.user.user_id
+        request.data['user'] = self.request.user.id
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -321,7 +321,7 @@ class OrdersList(mixins.CreateModelMixin,
     serializer_class = OrdersSerializer
     
     def get_queryset(self):
-        user_id = self.request.user.user_id
+        user_id = self.request.user.id
         if user_id is not None:
             queryset = Orders.objects.filter(user=user_id).order_by('-created_on')
             return queryset
