@@ -76,6 +76,8 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'social_django.context_processors.backends',
+                'social_django.context_processors.login_redirect'
             ],
         },
     },
@@ -192,7 +194,7 @@ DJOSER = {
     'ACTIVATION_URL': 'activate/{uid}/{token}',
     'SEND_ACTIVATION_EMAIL': True,
     'SOCIAL_AUTH_TOKEN_STRATEGY': 'djoser.social.token.jwt.TokenStrategy',
-    'SOCIAL_AUTH_ALLOWED_REDIRECT_URIS': ['http://localhost:3000/google', 'http://localhost:3000/facebook'],
+    'SOCIAL_AUTH_ALLOWED_REDIRECT_URIS': ['http://localhost:3000/google', 'http://localhost:3000/facebook', 'http://www.app.myblockbot.com/google', 'http://www.app.myblockbot.com/facebook'],
     'SERIALIZERS': {
         'user_create': 'bb.serializers.RegisterSerializer',
         'user_delete': 'djoser.serializers.UserDeleteSerializer'
@@ -203,3 +205,10 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = '937404097485-5csvq7gt7jr9lv6iam3lpt0kfragmjd0.a
 SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = 'ff6SQPVuaagm1Y7HoVvmpziw'
 SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = ['https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/userinfo.profile', 'openid']
 SOCIAL_AUTH_GOOGLE_OAUTH2_EXTRA_DATA = ['first_name', 'last_name']
+
+SOCIAL_AUTH_FACEBOOK_KEY = '1169152186870794'
+SOCIAL_AUTH_FACEBOOK_SECRET = '5956cb6bb72599c75c1ff8cd31ee31e0'
+SOCIAL_AUTH_FACEBOOK_SCOPE = ['email']
+SOCIAL_AUTH_FACEBOOK_PROFILE_EXTRA_PARAMS = {
+    'fields': 'email, first_name, last_name'
+}
