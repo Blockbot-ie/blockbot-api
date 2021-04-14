@@ -82,10 +82,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'blockbotie_api_project.wsgi.application'
 
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': ('knox.auth.TokenAuthentication',)
-}
-
 CORS_ORIGIN_WHITELIST = (
     'http://localhost:3000',
     'https://myblockbot-ui.herokuapp.com',
@@ -172,6 +168,7 @@ SIMPLE_JWT = {
 }
 
 DJOSER = {
+    
     'LOGIN_FIELD': 'email',
     'USER_CREATE_PASSWORD_RETYPE': True,
     'USERNAME_CHANGED_EMAIL_CONFIRMATION': True,
@@ -183,7 +180,6 @@ DJOSER = {
     'SEND_ACTIVATION_EMAIL': True,
     'SERIALIZERS': {
         'user_create': 'bb.serializers.RegisterSerializer',
-        'user': 'bb.serializers.UserSerializer',
         'user_delete': 'djoser.serializers.UserDeleteSerializer'
     },
 }
