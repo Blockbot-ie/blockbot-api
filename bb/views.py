@@ -11,6 +11,15 @@ from .serializers import UserSerializer, RegisterSerializer, LoginSerializer, St
 import datetime as dt
 import time
 from trading_scripts.services.helpers import send_bug_email
+from allauth.socialaccount.providers.facebook.views import FacebookOAuth2Adapter
+from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
+from rest_auth.registration.views import SocialLoginView
+
+
+class FacebookLogin(SocialLoginView):
+    adapter_class = FacebookOAuth2Adapter
+class GoogleLogin(SocialLoginView):
+    adapter_class = GoogleOAuth2Adapter
 
 # Register API
 class RegisterAPI(generics.GenericAPIView):

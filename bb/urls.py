@@ -1,11 +1,13 @@
 from django.urls import path, include, re_path
-from .views import RegisterAPI, LoginAPI, UserAPI, DashBoardData, StrategyList, ExchangeList, ConnectExchange, GetConnectedExchanges, ConnectStrategy, GetConnectedStrategies, StrategyPairs, OrdersList, BugReport, TopUpStrategy
+from .views import RegisterAPI, LoginAPI, UserAPI, DashBoardData, StrategyList, ExchangeList, ConnectExchange, GetConnectedExchanges, ConnectStrategy, GetConnectedStrategies, StrategyPairs, OrdersList, BugReport, TopUpStrategy, FacebookLogin, GoogleLogin 
 from django.views.generic import TemplateView
 
 urlpatterns = [
     path('auth/', include('djoser.urls')),
     path('auth/', include('djoser.urls.jwt')),
     path('auth/', include('djoser.social.urls')),
+    path('rest-auth/facebook/', FacebookLogin.as_view(), name='fb_login'),
+    path('rest-auth/google/', GoogleLogin.as_view(), name='google_login'),
     
     path('dashboard-data', DashBoardData.as_view()),
     path('strategies/', StrategyList.as_view()),

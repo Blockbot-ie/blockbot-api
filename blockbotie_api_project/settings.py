@@ -33,6 +33,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['myblockbot-api.herokuapp.com', '127.0.0.1', 'localhost']
 
+SITE_ID = 1
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -43,12 +45,22 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_auth',
     'corsheaders',
     'bb',
     'trading_scripts',
     'djoser',
     'social_django',
     'rest_framework_simplejwt',
+
+    #for social login
+     'django.contrib.sites',
+     'allauth',
+     'allauth.account',
+     'rest_auth.registration',
+     'allauth.socialaccount',
+     'allauth.socialaccount.providers.facebook',
+     'allauth.socialaccount.providers.google',
 ]
 
 MIDDLEWARE = [
