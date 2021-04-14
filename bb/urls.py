@@ -5,9 +5,7 @@ from django.views.generic import TemplateView
 urlpatterns = [
     path('auth/', include('djoser.urls')),
     path('auth/', include('djoser.urls.jwt')),
-    path('auth/register', RegisterAPI.as_view()),
-    path('auth/login', LoginAPI.as_view()),
-    path('auth/user', UserAPI.as_view()),
+    path('auth/', include('djoser.social.urls')),
     
     path('dashboard-data', DashBoardData.as_view()),
     path('strategies/', StrategyList.as_view()),
