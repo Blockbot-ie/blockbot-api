@@ -45,20 +45,16 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'rest_framework.authtoken',
-    'rest_auth',
     'corsheaders',
     'bb',
     'trading_scripts',
     'djoser',
-    'social_django',
-    'rest_framework_simplejwt',
+    
 
     #for social login
      'django.contrib.sites',
      'allauth',
      'allauth.account',
-     'rest_auth.registration',
      'allauth.socialaccount',
      'allauth.socialaccount.providers.facebook',
      'allauth.socialaccount.providers.google',
@@ -187,26 +183,6 @@ AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend'
 )
 
-SIMPLE_JWT = {
-    'AUTH_HEADER_TYPES': ('JWT',),
-    'ACCESS_TOKEN_LIFETIME': dt.timedelta(minutes=60),
-    'REFRESH_TOKEN_LIFETIME': dt.timedelta(days=1),
-    'AUTH_TOKEN_CLASSES': (
-        'rest_framework_simplejwt.tokens.AccessToken',
-    )
-}
-
-JWT_AUTH = {
-    'JWT_ENCODE_HANDLER':
-    'rest_framework_jwt.utils.jwt_encode_handler',
-
-    'JWT_DECODE_HANDLER':
-    'rest_framework_jwt.utils.jwt_decode_handler',
-
-    'JWT_PAYLOAD_HANDLER':
-    'rest_framework_jwt.utils.jwt_payload_handler',
-}
-
 DJOSER = {
     'LOGIN_FIELD': 'email',
     'USER_CREATE_PASSWORD_RETYPE': True,
@@ -219,8 +195,6 @@ DJOSER = {
     'USERNAME_RESET_CONFIRM_URL': 'email/reset/confirm/{uid}/{token}',
     'ACTIVATION_URL': 'activate/{uid}/{token}',
     'SEND_ACTIVATION_EMAIL': True,
-    'SOCIAL_AUTH_TOKEN_STRATEGY': 'djoser.social.token.jwt.TokenStrategy',
-    'SOCIAL_AUTH_ALLOWED_REDIRECT_URIS': ['http://localhost:3000/google', 'http://localhost:3000/facebook', 'http://www.app.myblockbot.com/google', 'http://www.app.myblockbot.com/facebook'],
     'SERIALIZERS': {
         'user_create': 'bb.serializers.RegisterSerializer',
         'user_delete': 'djoser.serializers.UserDeleteSerializer'

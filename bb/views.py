@@ -15,13 +15,28 @@ from allauth.socialaccount.providers.facebook.views import FacebookOAuth2Adapter
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from rest_auth.registration.views import SocialLoginView
 from allauth.socialaccount.providers.oauth2.client import OAuth2Client
+from rest_framework_simplejwt.backends import TokenBackend
 
 
 class FacebookLogin(SocialLoginView):
     adapter_class = FacebookOAuth2Adapter
-    
+
 class GoogleLogin(SocialLoginView):
     adapter_class = GoogleOAuth2Adapter
+
+class AuthorizeUser(generics.GenericAPIView):
+
+    def get(self, request):
+        print(request)
+        token = request.META.get('HTTP_AUTHORIZATION', " ").split(' ')[1]
+        data = {'token': token}
+        try:
+            valid_data = TokenBackend(algorithm='HS256').decode(token,verify=False)
+            user = valid_data['user']
+            request.user = user
+            print(user)
+        except ValidationError as v:
+            print("validation error", v)
 
 # Register API
 class RegisterAPI(generics.GenericAPIView):
