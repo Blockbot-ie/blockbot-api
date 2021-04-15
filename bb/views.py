@@ -19,6 +19,7 @@ from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 
 class FacebookLogin(SocialLoginView):
     adapter_class = FacebookOAuth2Adapter
+    
 class GoogleLogin(SocialLoginView):
     adapter_class = GoogleOAuth2Adapter
 

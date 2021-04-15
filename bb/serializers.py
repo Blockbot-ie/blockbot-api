@@ -5,6 +5,7 @@ from django.http import HttpResponseRedirect, JsonResponse
 from bb.models import User, Strategy, Exchange, User_Exchange_Account, User_Strategy_Pair, Strategy_Supported_Pairs, Orders
 import ccxt
 import datetime as dt
+from rest_auth.serializers import JWTSerializer
 
 User._meta.get_field('email')._unique = True
 
