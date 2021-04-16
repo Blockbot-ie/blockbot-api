@@ -13,7 +13,7 @@ import time
 from trading_scripts.services.helpers import send_bug_email
 from allauth.socialaccount.providers.facebook.views import FacebookOAuth2Adapter
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
-from rest_auth.registration.views import SocialLoginView
+from dj_rest_auth.registration.views import SocialLoginView
 from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 from rest_framework_simplejwt.backends import TokenBackend
 
@@ -23,20 +23,8 @@ class FacebookLogin(SocialLoginView):
 
 class GoogleLogin(SocialLoginView):
     adapter_class = GoogleOAuth2Adapter
-
-class AuthorizeUser(generics.GenericAPIView):
-
-    def get(self, request):
-        print(request)
-        token = request.META.get('HTTP_AUTHORIZATION', " ").split(' ')[1]
-        data = {'token': token}
-        try:
-            valid_data = TokenBackend(algorithm='HS256').decode(token,verify=False)
-            user = valid_data['user']
-            request.user = user
-            print(user)
-        except ValidationError as v:
-            print("validation error", v)
+    client_class = OAuth2Client
+    callback_url = "http://127.0.0.1:3000/api/dj-rest-auth/google/callback/"
 
 # Register API
 class RegisterAPI(generics.GenericAPIView):
@@ -134,7 +122,6 @@ class DashBoardData(mixins.ListModelMixin,
                     
         active_strategies = user_pairs.count()
         content = {
-            'balance': balance,
             'active_strategies': active_strategies,
             'inc_or_dec_vs_hodl': inc_or_dec_vs_hodl
         }
