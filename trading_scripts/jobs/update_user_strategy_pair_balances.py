@@ -1,14 +1,16 @@
-from bb.models import User_Strategy_Pair, User_Strategy_Pair_Daily_Balance, User_Exchange_Account, Exchange
+from bb.models import User_Strategy_Pair, User_Strategy_Pair_Daily_Balance, User_Exchange_Account, Exchange, User
 import ccxt
 
 def main():
     print("Running Update Strategy Pairs Job")
     try:
         for user_pair in User_Strategy_Pair.objects.filter(is_active=True):
+            user = User.objects.get(user_id=user_pair.user_id)
             print("Updating pair with id {}".format(user_pair.id))
             # init balance model
             daily_balance = User_Strategy_Pair_Daily_Balance()
             daily_balance.user_strategy_pair_id = user_pair.id
+            daily_balance.user = user
 
             # get users exchange
             user_exchange = User_Exchange_Account.objects.filter(is_active=True, user_exchange_account_id=user_pair.user_exchange_account_id).first()

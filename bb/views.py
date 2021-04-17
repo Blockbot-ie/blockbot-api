@@ -5,7 +5,6 @@ import json
 from django.db import IntegrityError
 from django.db.models import Sum
 import ccxt
-# from knox.models import AuthToken
 from .models import User, Strategy, Exchange, User_Exchange_Account, User_Strategy_Pair, Strategy_Supported_Pairs, Pairs, Orders, User_Strategy_Pair_Daily_Balance, Exchange_Supported_Pairs
 from .serializers import UserSerializer, RegisterSerializer, LoginSerializer, StrategySerializer, ExchangeSerializer, ConnectExchangeSerializer, ConnectStrategySerializer, StrategySupportedPairsSerializer, OrdersSerializer, GetConnectedExchangesSerializer, GetConnectedStrategiesSerializer
 import datetime as dt
@@ -442,6 +441,32 @@ class TopUpStrategy(generics.GenericAPIView):
         daily_balance.save()
         content = {'Success': 'Topped up successfully'}
         return Response(content, status=status.HTTP_201_CREATED)
+
+class GetDailyBalances(generics.GenericAPIView):
+
+    permission_classes = (permissions.IsAuthenticated, )
+
+    def get(self, request, *args, **kwargs):
+        user = self.request.user.user_id
+        content = []
+        for user_strategy_pair in User_Strategy_Pair.objects.filter(user_id=user):
+            data = {}
+            strategy_balances = User_Strategy_Pair_Daily_Balance.objects.filter(user_strategy_pair=user_strategy_pair.id).order_by('created_on')
+            if strategy_balances is not None:
+                data["strategy_id"] = user_strategy_pair.id
+                sub_data = []
+                for balance in strategy_balances:
+                    object_to_append = {
+                        "date": balance.created_on,
+                        "hodl_value": balance.hodl_value,
+                        "strategy_value": balance.strategy_value
+                        }
+                    sub_data.append(object_to_append)
+                data["data"] = sub_data
+                content.append(data)
+                
+        return Response(content, status=status.HTTP_200_OK)
+
 
 def connect_to_users_exchange(user_exchange_account):
     exchange_name = Exchange.objects.filter(exchange_id=user_exchange_account.exchange_id).first()
