@@ -7,7 +7,7 @@ from django_cryptography.fields import encrypt
 from django.contrib.auth.models import AbstractUser
 
 class User(AbstractUser):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     is_connected = models.BooleanField(
         _('Connected'),
         default=False,

@@ -57,11 +57,11 @@ def load_prices(exchange, price_pair, frequency, date_from, date_to):
 
     return df
 
-def get_san_data():
-    df = san.get("ohlcv/bitcoin",
-                      from_date="2017-01-01T00:00:00Z",
-                      to_date="2020-01-01T00:00:00Z",
-                      interval="1d",
+def get_san_data(coin, date_from, date_to, interval):
+    df = san.get("ohlcv/${coin}",
+                      from_date=date_from,
+                      to_date=date_to,
+                      interval=interval,
                       aggregation='FIRST')
     
     df = pd.DataFrame(df, columns=['openPriceUsd', 'closePriceUsd', 'highPriceUsd', 'lowPriceUsd', 'volume'])

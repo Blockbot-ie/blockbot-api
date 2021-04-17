@@ -88,9 +88,10 @@ class DashBoardData(mixins.ListModelMixin,
     permission_classes = (permissions.IsAuthenticated, )
 
     def get(self, request, *args, **kwargs):
-        user_pairs = User_Strategy_Pair.objects.filter(user_id=self.request.user.id, is_active=True) 
+        user_pairs = User_Strategy_Pair.objects.filter(user_id=self.request.user.user_id, is_active=True) 
         
         inc_or_dec_vs_hodl = []
+        balances = 0.0
         for pair in user_pairs:
             strategy = Strategy.objects.filter(is_active=True, strategy_id=pair.strategy_id).first()
             user_exchange_account = User_Exchange_Account.objects.filter(is_active=True, user_exchange_account_id=pair.user_exchange_account_id).first()
@@ -107,6 +108,7 @@ class DashBoardData(mixins.ListModelMixin,
                     current_asset_value = pair.current_currency_balance/price['close']
                 else:
                     balance = pair.current_currency_balance * price['close']
+                balances += balance
                 diff = current_asset_value - pair.initial_first_symbol_balance
                 inc_or_dec = (diff/pair.initial_first_symbol_balance) * 100
                 inc_or_dec_object_to_add = {
@@ -122,6 +124,7 @@ class DashBoardData(mixins.ListModelMixin,
                     
         active_strategies = user_pairs.count()
         content = {
+            'balance': balances,
             'active_strategies': active_strategies,
             'inc_or_dec_vs_hodl': inc_or_dec_vs_hodl
         }
@@ -157,9 +160,9 @@ class GetConnectedExchanges(mixins.CreateModelMixin,
     serializer_class = GetConnectedExchangesSerializer
     
     def get(self, request, *args, **kwargs):
-        queryset = User_Exchange_Account.objects.filter(user_id=self.request.user.id)
+        queryset = User_Exchange_Account.objects.filter(user_id=self.request.user.user_id)
         content = []
-        user_id = self.request.user.id
+        user_id = self.request.user.user_id
         if user_id is not None:
             for exchange in queryset:
                 user_strategy_pairs = User_Strategy_Pair.objects.filter(user_exchange_account_id=exchange.user_exchange_account_id)
@@ -202,10 +205,10 @@ class ConnectExchange(mixins.CreateModelMixin,
             content = {'Error': str(error)}
             return Response(content, status=status.HTTP_400_BAD_REQUEST)
         
-        user_account_with_current_exchange = User_Exchange_Account.objects.filter(exchange_id=exchange_object.exchange_id, user_id=self.request.user.id)
+        user_account_with_current_exchange = User_Exchange_Account.objects.filter(exchange_id=exchange_object.exchange_id, user_id=self.request.user.user_id)
         request.data['name'] = exchange_object.display_name + " " + str(user_account_with_current_exchange.count() + 1)
         request.data['user_exchange_account_id'] = account_id
-        request.data['user'] = self.request.user.id
+        request.data['user'] = self.request.user.user_id
         
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -228,7 +231,7 @@ class GetConnectedStrategies(mixins.CreateModelMixin,
     
     def get_queryset(self):
         queryset = User_Strategy_Pair.objects.all()
-        user_id = self.request.user.id
+        user_id = self.request.user.user_id
         if user_id is not None:
             queryset = queryset.filter(user_id=user_id)
             return queryset
@@ -241,6 +244,7 @@ class ConnectStrategy(mixins.CreateModelMixin,
     serializer_class = ConnectStrategySerializer
 
     def post(self, request, *args, **kwargs):
+        print(self.request.user.user_id)
         user_exchange_account = User_Exchange_Account.objects.filter(is_active=True, user_exchange_account_id=request.data['user_exchange_account']).first()
         try:
             if user_exchange_account:
@@ -272,7 +276,7 @@ class ConnectStrategy(mixins.CreateModelMixin,
             content = {'Error': str(error)}
             return Response(content, status=status.HTTP_400_BAD_REQUEST)
 
-        request.data['user'] = self.request.user.id
+        request.data['user'] = self.request.user.user_id
         if request.data['initial_first_symbol_balance'] is None or request.data['initial_first_symbol_balance'] == 0:
             request.data['initial_first_symbol_balance'] = request.data['initial_second_symbol_balance']/price['close']
         else:
@@ -280,7 +284,7 @@ class ConnectStrategy(mixins.CreateModelMixin,
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        user = User.objects.filter(id=self.request.user.id).first()
+        user = User.objects.filter(user_id=self.request.user.user_id).first()
         user.is_connected = True
         user.save()
         try:
@@ -315,7 +319,7 @@ class StrategyPairs(mixins.CreateModelMixin,
         return Response(content, status=status.HTTP_200_OK)
     
     def post(self, request, *args, **kwargs):
-        request.data['user'] = self.request.user.id
+        request.data['user'] = self.request.user.user_id
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -334,7 +338,7 @@ class OrdersList(mixins.CreateModelMixin,
     serializer_class = OrdersSerializer
     
     def get_queryset(self):
-        user_id = self.request.user.id
+        user_id = self.request.user.user_id
         if user_id is not None:
             queryset = Orders.objects.filter(user=user_id).order_by('-created_on')
             return queryset

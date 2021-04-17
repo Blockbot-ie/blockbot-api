@@ -5,7 +5,7 @@ from django.http import HttpResponseRedirect, JsonResponse
 from bb.models import User, Strategy, Exchange, User_Exchange_Account, User_Strategy_Pair, Strategy_Supported_Pairs, Orders
 import ccxt
 import datetime as dt
-from rest_auth.serializers import JWTSerializer
+from dj_rest_auth.registration.serializers import RegisterSerializer
 
 User._meta.get_field('email')._unique = True
 
@@ -16,15 +16,23 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ('user_id', 'username', 'email', 'is_connected')
 
 # Register Serializer
-class RegisterSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ('user_id', 'username', 'first_name', 'last_name', 'email', 'password', 'last_login')
-        extra_kwargs = {'password': {'write_only': True}}
 
-    def create(self, validated_data):
-        user = User.objects.create_user(validated_data['username'], validated_data['email'], validated_data['password'])
-        return user
+
+
+class CustomRegisterSerializer(RegisterSerializer):
+    first_name = serializers.CharField()
+    last_name = serializers.CharField()
+
+    def get_cleaned_data(self):
+        super(CustomRegisterSerializer, self).get_cleaned_data()
+        return {
+            'username': self.validated_data.get('username', ''),
+            'password1': self.validated_data.get('password1', ''),
+            'password2': self.validated_data.get('password2', ''),
+            'email': self.validated_data.get('email', ''),
+            'first_name': self.validated_data.get('first_name', ''),
+            'last_name': self.validated_data.get('last_name', '')
+        }
 
 # Login Serializer
 class LoginSerializer(serializers.Serializer):

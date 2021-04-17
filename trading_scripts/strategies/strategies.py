@@ -78,22 +78,9 @@ def twenty_ten_MA(strategy):
             df.loc[(df['Open'] - df['10_Week_MA'] < 0) & (df['bubble'] == 1), 'signal'] = 0
             df.loc[(df['Open'] - df['10_Week_MA'] > 0) & (df['bubble'] == 1), 'signal'] = 1
             df['signal'] = df['signal'].ffill()
-            split = symbol.symbol.index('/')
-            first_symbol = symbol.symbol[:split]
-            second_symbol = symbol.symbol[split+1:]
-            if df.iloc[-1]['signal'] == 1:
-                target_currency = first_symbol
-            else:
-                target_currency = second_symbol
-            # target_currency = 'USDC'
-            data = Strategies_Suggested()
-            data.start_time_utc = start_time_utc
-            data.target_currency = target_currency
-            data.tick = dt.datetime.utcnow()
-            data.pair = pair
-            print('Inserting into bb_strategies_suggested: ', data)
-            data.save()
-            print("1 item inserted successfully")
+
+            update_target_currency(symbol.symbol, df.iloc[-1]['signal'])
+
     except Exception as e:
         exc_type, exc_obj, exc_tb = sys.exc_info()
         fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
@@ -112,7 +99,7 @@ def multi_ma(strategy):
             symbol = Pairs.objects.filter(pair_id=pair.pair_id).first()
             start_time_utc = dt.datetime.utcnow().replace(minute=0, second=0, microsecond=0)
             start_date = dt.datetime.today()
-            san_df = exchange_data.get_san_data()
+            san_df = exchange_data.get_san_data('bitcoin', '2017-01-01T00:00:00Z', '2020-01-01T00:00:00Z', '1d')
             weeks = 200
             df = pd.DataFrame()
             while weeks > 0:
@@ -179,25 +166,60 @@ def multi_ma(strategy):
             df.loc[(df['Open'] - df['1_Week_MA'] > 0) & (df['Week_MA'] == 1), 'signal'] = 1
             df['signal'] = df['signal'].ffill()
             
-            split = symbol.symbol.index('/')
-            first_symbol = symbol.symbol[:split]
-            second_symbol = symbol.symbol[split+1:]
-            if df.iloc[-1]['signal'] == 1:
-                target_currency = first_symbol
-            else:
-                target_currency = second_symbol
-            # target_currency = 'USDC'
-            data = Strategies_Suggested()
-            data.start_time_utc = start_time_utc
-            data.target_currency = target_currency
-            data.tick = dt.datetime.utcnow()
-            data.pair = pair
-            print('Inserting into bb_strategies_suggested: ', data)
-            data.save()
-            print("1 item inserted successfully")
+            update_target_currency(symbol.symbol, df.iloc[-1]['signal'])
     
     except Exception as e:
         exc_type, exc_obj, exc_tb = sys.exc_info()
         fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
         print(exc_type, fname, exc_tb.tb_lineno, e)
         return
+
+
+def eth_5_EMA(strategy):
+    """
+    Main eth_5_EMA function
+    output:
+    """
+    try:
+        print('Starting eth_5_EMA script')
+        strategy_pairs = Strategy_Supported_Pairs.objects.filter(strategy_id=strategy)
+        for pair in strategy_pairs:
+            symbol = Pairs.objects.filter(pair_id=pair.pair_id).first()
+            start_time_utc = dt.datetime.utcnow().replace(minute=0, second=0, microsecond=0)
+
+            date_from = dt.datetime.today() + dt.timedelta(weeks=-30)
+            date_to = dt.datetime.today()
+            df = exchange_data.load_prices(exchange='coinbasepro', price_pair=symbol.symbol, frequency='1d', date_from=date_from, date_to=date_to)
+            df['MA'] = df['Open'].ewm(span=7*5, min_periods=7*5).mean()
+            df['signal'] = float('Nan')
+            df.loc[df.index == df.index.min(), 'signal'] = 1
+
+            df.loc[df['Open'] < (df['MA'] * 0.95), 'signal'] = 0
+            df.loc[(df['Open'] > (df['MA'] * 1.05)) & (df['signal'].isnull()), 'signal'] = 1
+
+            df['signal'] = df['signal'].ffill()
+
+            update_target_currency(symbol.symbol, df.iloc[-1]['signal'])
+    except Exception as e:
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+        print(exc_type, fname, exc_tb.tb_lineno, e)
+        return
+
+def update_target_currency(pair, signal):
+    split = pair.index('/')
+    first_symbol = pair[:split]
+    second_symbol = pair[split+1:]
+    if signal == 1:
+        target_currency = first_symbol
+    else:
+        target_currency = second_symbol
+    # target_currency = 'USDC'
+    data = Strategies_Suggested()
+    data.start_time_utc = start_time_utc
+    data.target_currency = target_currency
+    data.tick = dt.datetime.utcnow()
+    data.pair = pair
+    print('Inserting into bb_strategies_suggested: ', data)
+    data.save()
+    print("1 item inserted successfully")
