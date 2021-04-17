@@ -31,8 +31,7 @@ def main():
             second_symbol = user_pair.pair[split+1:]
 
             if user_pair.current_currency == second_symbol:
-                first_symbol_value = price['close'] / user_pair.current_currency_balance
-                daily_balance.strategy_value = first_symbol_value * price['close']
+                daily_balance.strategy_value = user_pair.current_currency_balance
             else:
                 daily_balance.strategy_value = user_pair.current_currency_balance * price['close']
             print("Saving data")

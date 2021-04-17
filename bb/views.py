@@ -459,12 +459,13 @@ class GetDailyBalances(generics.GenericAPIView):
                     object_to_append = {
                         "date": balance.created_on,
                         "hodl_value": balance.hodl_value,
-                        "strategy_value": balance.strategy_value
+                        "strategy_value": balance.strategy_value,
+                        "is_top_up": balance.is_top_up
                         }
                     sub_data.append(object_to_append)
                 data["data"] = sub_data
                 content.append(data)
-                
+
         return Response(content, status=status.HTTP_200_OK)
 
 
