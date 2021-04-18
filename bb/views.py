@@ -9,7 +9,7 @@ from .models import User, Strategy, Exchange, User_Exchange_Account, User_Strate
 from .serializers import UserSerializer, RegisterSerializer, LoginSerializer, StrategySerializer, ExchangeSerializer, ConnectExchangeSerializer, ConnectStrategySerializer, StrategySupportedPairsSerializer, OrdersSerializer, GetConnectedExchangesSerializer, GetConnectedStrategiesSerializer
 import datetime as dt
 import time
-from trading_scripts.services.helpers import send_bug_email
+from trading_scripts.services.emails import send_bug_email
 from allauth.socialaccount.providers.facebook.views import FacebookOAuth2Adapter
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from dj_rest_auth.registration.views import SocialLoginView

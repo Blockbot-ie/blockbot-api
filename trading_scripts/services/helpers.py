@@ -3,15 +3,13 @@ django.setup()
 import datetime as dt
 from django.utils import timezone
 import ccxt
-from bb.models import Strategies_Suggested, Strategy_Supported_Pairs, Pairs, User_Strategy_Pair, User_Exchange_Account, Exchange, Orders
+from bb.models import User, Strategies_Suggested, Strategy_Supported_Pairs, Pairs, User_Strategy_Pair, User_Exchange_Account, Exchange, Orders
 import os
 import os.path
 import sys
-import ssl, smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from multiprocessing import Pool
 from functools import partial
+from trading_scripts.services import emails
 
 def get_target_currencies():
     print('Getting target currencies')
@@ -58,47 +56,6 @@ def get_exchange(exchange, api_key, api_secret, subaccount, password):
     except Exception as e:
         print(e)
     return exchange
-
-
-
-def send_bug_email(issue_type, area, issue, sender):
-    print('Starting daily email job')
-    try:
-        html = """\
-                <html>
-                <body>
-                    <p><b>Type: </b>{0}</p>
-                    <p><b>Area: </b>{1}</p>
-                    <p><b>Description: </b>{2}</p>
-                </body>
-                </html>
-                """.format(issue_type, area, issue)
-    
-        port = 465
-        gmail_password = 'ClingomintAMDG101'
-        # Create a secure SSL context
-        context = ssl.create_default_context()
-
-        sender_email = sender
-        receiver_email = "blockbotie@gmail.com"
-        message = MIMEMultipart("alternative")
-        message["Subject"] = issue_type
-        message["From"] = sender_email
-
-        part1 = MIMEText(html, "html")
-        message.attach(part1)
-
-        with smtplib.SMTP_SSL("smtp.gmail.com", port, context=context) as server:
-            print('Logging into email server')
-            server.login(sender_email, gmail_password)
-            print('Sending email')
-            message["To"] = receiver_email
-            server.sendmail(
-                sender_email, receiver_email, message.as_string()
-            )
-            print('Email sent to {0}'.format(receiver_email))
-    except Exception as error:
-        print("Error sending order emails ", error)
 
 def buy_or_sell():
     """
@@ -177,8 +134,11 @@ def run_buy_or_sell_process(target_currencies, user):
             except Exception as e:
                 print("An exception occurred: ", e)
                 user.no_of_failed_attempts += 1
+                if user.no_of_failed_attempts >= 5:
+                    user.is_active = False
                 user.save()
-                # send_email.send_daily_email(None, type(e))
+                user_info = User.objects.get(user_id=user.user_id)
+                emails.send_order_error_email(user_info, e.args, user.no_of_failed_attempts)
         
         elif target_currency == second_symbol:
             print('Selling ', target_currency)
@@ -186,7 +146,6 @@ def run_buy_or_sell_process(target_currencies, user):
             try:
                 order = user_exchange.create_order(user.pair, 'market', 'sell', amount)
                 if order:
-                    
                     price = user_exchange.fetch_ticker(user.pair)
                     new_order = Orders()
                     new_order.order_id = order['id']
@@ -204,8 +163,11 @@ def run_buy_or_sell_process(target_currencies, user):
             except Exception as e:
                 print("An exception occurred: ", e)
                 user.no_of_failed_attempts += 1
+                if user.no_of_failed_attempts >= 5:
+                    user.is_active = False
                 user.save()
-                # send_email.send_daily_email(None, type(e))
+                user_info = User.objects.get(user_id=user.user_id)
+                emails.send_order_error_email(user_info, e.args, user.no_of_failed_attempts)
     
 def run_update_order_process(open_order):
     user_strategy_pair = User_Strategy_Pair.objects.filter(id=open_order.user_strategy_pair_id).first()
