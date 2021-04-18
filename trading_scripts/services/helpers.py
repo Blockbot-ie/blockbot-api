@@ -161,7 +161,6 @@ def run_buy_or_sell_process(target_currencies, user):
                 if order:
                     price = user_exchange.fetch_ticker(user.pair)
                     new_order = Orders()
-                    
                     new_order.order_id = order['id']
                     new_order.market = order['symbol']
                     new_order.side = order['side']
@@ -177,6 +176,8 @@ def run_buy_or_sell_process(target_currencies, user):
 
             except Exception as e:
                 print("An exception occurred: ", e)
+                user.no_of_failed_attempts += 1
+                user.save()
                 # send_email.send_daily_email(None, type(e))
         
         elif target_currency == second_symbol:
@@ -202,6 +203,8 @@ def run_buy_or_sell_process(target_currencies, user):
                     new_order.save()
             except Exception as e:
                 print("An exception occurred: ", e)
+                user.no_of_failed_attempts += 1
+                user.save()
                 # send_email.send_daily_email(None, type(e))
     
 def run_update_order_process(open_order):

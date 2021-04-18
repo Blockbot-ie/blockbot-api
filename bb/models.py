@@ -83,6 +83,7 @@ class User_Strategy_Pair(models.Model):
     )
     modified_on = models.DateTimeField(_('modified_on'), default=timezone.now)
     created_on = models.DateTimeField(_('created_on'), default=timezone.now)
+    no_of_failed_attempts = models.IntegerField(_('Number of Failed Attempts'), default=0)
 
 class Orders(models.Model):
     order_id = models.CharField(primary_key=True, max_length=50, editable=False)

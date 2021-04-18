@@ -67,6 +67,6 @@ def get_san_data(coin, date_from, date_to, interval):
     df = pd.DataFrame(df, columns=['openPriceUsd', 'closePriceUsd', 'highPriceUsd', 'lowPriceUsd', 'volume'])
     df.columns = ['Open', 'High', 'Low', 'Close', 'Volume']
     df.index.name = 'Opentime'
-    df.index = df.index.strftime('%Y-%m-%d')    
+    # df.index = df.index.strftime('%Y-%m-%d')  
     df = df.sort_index()
     return df

@@ -17,7 +17,6 @@ def twenty_MA(strategy):
         strategy_pairs = Strategy_Supported_Pairs.objects.filter(strategy_id=strategy)
         for pair in strategy_pairs:
             symbol = Pairs.objects.filter(pair_id=pair.pair_id).first()
-            start_time_utc = dt.datetime.utcnow().replace(minute=0, second=0, microsecond=0)
             date_from = dt.datetime.today() + dt.timedelta(weeks=-20)
             date_to = dt.datetime.today()
             df = exchange_data.load_prices(exchange='coinbasepro', price_pair=symbol.symbol, frequency='1d', date_from=date_from, date_to=date_to)
@@ -57,7 +56,6 @@ def twenty_ten_MA(strategy):
         strategy_pairs = Strategy_Supported_Pairs.objects.filter(strategy_id=strategy)
         for pair in strategy_pairs:
             symbol = Pairs.objects.filter(pair_id=pair.pair_id).first()
-            start_time_utc = dt.datetime.utcnow().replace(minute=0, second=0, microsecond=0)
             date_from = dt.datetime.today() + dt.timedelta(weeks=-30)
             date_to = dt.datetime.today()
             df = exchange_data.load_prices(exchange='coinbasepro', price_pair=symbol.symbol, frequency='1d', date_from=date_from, date_to=date_to)
@@ -79,7 +77,7 @@ def twenty_ten_MA(strategy):
             df.loc[(df['Open'] - df['10_Week_MA'] > 0) & (df['bubble'] == 1), 'signal'] = 1
             df['signal'] = df['signal'].ffill()
 
-            update_target_currency(symbol.symbol, df.iloc[-1]['signal'])
+            update_target_currency(symbol.symbol, df.iloc[-1]['signal'], pair)
 
     except Exception as e:
         exc_type, exc_obj, exc_tb = sys.exc_info()
@@ -97,7 +95,6 @@ def multi_ma(strategy):
         strategy_pairs = Strategy_Supported_Pairs.objects.filter(strategy_id=strategy)
         for pair in strategy_pairs:
             symbol = Pairs.objects.filter(pair_id=pair.pair_id).first()
-            start_time_utc = dt.datetime.utcnow().replace(minute=0, second=0, microsecond=0)
             start_date = dt.datetime.today()
             san_df = exchange_data.get_san_data('bitcoin', '2017-01-01T00:00:00Z', '2020-01-01T00:00:00Z', '1d')
             weeks = 200
@@ -166,7 +163,7 @@ def multi_ma(strategy):
             df.loc[(df['Open'] - df['1_Week_MA'] > 0) & (df['Week_MA'] == 1), 'signal'] = 1
             df['signal'] = df['signal'].ffill()
             
-            update_target_currency(symbol.symbol, df.iloc[-1]['signal'])
+            update_target_currency(symbol.symbol, df.iloc[-1]['signal'], pair)
     
     except Exception as e:
         exc_type, exc_obj, exc_tb = sys.exc_info()
@@ -199,14 +196,15 @@ def eth_5_EMA(strategy):
 
             df['signal'] = df['signal'].ffill()
 
-            update_target_currency(symbol.symbol, df.iloc[-1]['signal'])
+            update_target_currency(symbol.symbol, df.iloc[-1]['signal'], pair)
     except Exception as e:
         exc_type, exc_obj, exc_tb = sys.exc_info()
         fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
         print(exc_type, fname, exc_tb.tb_lineno, e)
         return
 
-def update_target_currency(pair, signal):
+def update_target_currency(pair, signal, strategy_pair):
+    start_time_utc = dt.datetime.utcnow().replace(minute=0, second=0, microsecond=0)
     split = pair.index('/')
     first_symbol = pair[:split]
     second_symbol = pair[split+1:]
@@ -219,7 +217,7 @@ def update_target_currency(pair, signal):
     data.start_time_utc = start_time_utc
     data.target_currency = target_currency
     data.tick = dt.datetime.utcnow()
-    data.pair = pair
+    data.pair = strategy_pair
     print('Inserting into bb_strategies_suggested: ', data)
     data.save()
     print("1 item inserted successfully")
