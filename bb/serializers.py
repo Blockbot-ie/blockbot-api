@@ -71,7 +71,7 @@ class ExchangeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Exchange
-        fields = ('exchange_id', 'display_name',)
+        fields = ('exchange_id', 'display_name', 'name', 'sign_up_url')
 
 class ConnectExchangeSerializer(serializers.ModelSerializer):
     user_exchange_account_id = serializers.UUIDField()

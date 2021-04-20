@@ -37,6 +37,7 @@ class Exchange(models.Model):
         default=True,
     )
     created_on = models.DateTimeField(_('created_on'), default=timezone.now)
+    sign_up_url = models.CharField(_('SignUp URL'), max_length=1000, blank=True)
 
 class Pairs(models.Model):
     pair_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -53,7 +54,7 @@ class Pairs(models.Model):
     
 class User_Exchange_Account(models.Model):
     user_exchange_account_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.CharField(_('Exchange Account Name'), max_length=255, blank=True, unique=True)
+    name = models.CharField(_('Exchange Account Name'), max_length=255, blank=True)
     user = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
     exchange = models.ForeignKey(Exchange, null=True, on_delete=models.SET_NULL)
     api_key = encrypt(models.CharField(_('API Key'), max_length=255, blank=True))
