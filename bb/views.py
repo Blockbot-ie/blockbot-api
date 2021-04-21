@@ -306,6 +306,7 @@ class StrategyPairs(mixins.CreateModelMixin,
             pair_entity = Pairs.objects.filter(pair_id=pair.pair_id).first()
             exchanges = Exchange_Supported_Pairs.objects.filter(pair_id=pair_entity.pair_id).values('exchange_id')
             pair_object = {
+                "pair_id": pair_entity.pair_id,
                 "strategy_id": pair.strategy_id,
                 "symbol": pair_entity.symbol,
                 "ticker_1":  pair_entity.ticker_1,
