@@ -8,6 +8,7 @@ import ccxt
 from .models import User, Strategy, Exchange, User_Exchange_Account, User_Strategy_Pair, Strategy_Supported_Pairs, Pairs, Orders, User_Strategy_Pair_Daily_Balance, Exchange_Supported_Pairs
 from .serializers import UserSerializer, RegisterSerializer, LoginSerializer, StrategySerializer, ExchangeSerializer, ConnectExchangeSerializer, ConnectStrategySerializer, StrategySupportedPairsSerializer, OrdersSerializer, GetConnectedExchangesSerializer, GetConnectedStrategiesSerializer
 import datetime as dt
+from django.utils import timezone
 import time
 from trading_scripts.services.emails import send_bug_email
 from allauth.socialaccount.providers.facebook.views import FacebookOAuth2Adapter
@@ -111,6 +112,7 @@ class DashBoardData(mixins.ListModelMixin,
                 diff = current_asset_value - pair.initial_first_symbol_balance
                 inc_or_dec = (diff/pair.initial_first_symbol_balance) * 100
                 inc_or_dec_object_to_add = {
+                    'strategy_pair_id': pair.id,
                     'exchange_account': pair.user_exchange_account_id,
                     'exchange_account_name': user_exchange_account.name,
                     'strategy_id': pair.strategy_id,
@@ -449,23 +451,37 @@ class GetDailyBalances(generics.GenericAPIView):
 
     def get(self, request, *args, **kwargs):
         user = self.request.user.user_id
-        content = []
-        for user_strategy_pair in User_Strategy_Pair.objects.filter(user_id=user):
-            data = {}
-            strategy_balances = User_Strategy_Pair_Daily_Balance.objects.filter(user_strategy_pair=user_strategy_pair.id).order_by('created_on')
-            if strategy_balances is not None:
-                data["strategy_id"] = user_strategy_pair.id
-                sub_data = []
-                for balance in strategy_balances:
-                    object_to_append = {
-                        "date": balance.created_on,
-                        "hodl_value": balance.hodl_value,
-                        "strategy_value": balance.strategy_value,
-                        "is_top_up": balance.is_top_up
-                        }
-                    sub_data.append(object_to_append)
-                data["data"] = sub_data
-                content.append(data)
+        content = [] 
+        data = {}
+        interval = request.query_params.get('interval')
+        if interval == '1D':
+            interval = 2
+        if interval == '1W':
+            interval = 7
+        if interval == '1M':
+            interval = 31
+        if interval == '3M':
+            interval = 93
+        if interval == '6M':
+            interval = 186
+
+        now = dt.datetime.now(tz=timezone.utc)
+        from_date = now - dt.timedelta(days=interval)
+        strategy_balances = User_Strategy_Pair_Daily_Balance.objects.filter(user_strategy_pair=request.query_params.get('pair_id'), created_on__gte=from_date).order_by('created_on')
+        if strategy_balances is not None:
+            data["strategy_id"] = request.query_params.get('pair_id')
+            sub_data = []
+
+            for balance in strategy_balances:
+                object_to_append = {
+                    "date": balance.created_on,
+                    "hodl_value": balance.hodl_value,
+                    "strategy_value": balance.strategy_value,
+                    "is_top_up": balance.is_top_up
+                    }
+                sub_data.append(object_to_append)
+            data["data"] = sub_data
+            content.append(data)
 
         return Response(content, status=status.HTTP_200_OK)
 

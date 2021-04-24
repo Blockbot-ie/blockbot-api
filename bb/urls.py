@@ -30,7 +30,7 @@ urlpatterns = [
     path('orders', OrdersList.as_view()),
     path('submit-bug-report', BugReport.as_view()),
     path('top-up-strategy', TopUpStrategy.as_view()),
-    path('get-daily-balances/', GetDailyBalances.as_view())
+    path('daily-balances/request', GetDailyBalances.as_view())
     ]
 
 urlpatterns += [re_path(r'^.*', TemplateView.as_view(template_name='index.html'))]
