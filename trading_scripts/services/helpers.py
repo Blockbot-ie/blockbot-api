@@ -168,7 +168,8 @@ def run_buy_or_sell_process(target_currencies, user):
                 user.save()
                 user_info = User.objects.get(user_id=user.user_id)
                 emails.send_order_error_email(user_info, e.args, user.no_of_failed_attempts)
-    
+
+
 def run_update_order_process(open_order):
     user_strategy_pair = User_Strategy_Pair.objects.filter(id=open_order.user_strategy_pair_id).first()
     user_exchange_account = User_Exchange_Account.objects.filter(is_active=True, user_exchange_account_id=user_strategy_pair.user_exchange_account_id).first()

@@ -491,6 +491,7 @@ class GetGraphData(generics.GenericAPIView):
 
     def get(self, request, *args, **kwargs):
         print(request.query_params)
+        
         return Response({}, status=status.HTTP_200_OK)
 
 def connect_to_users_exchange(user_exchange_account):

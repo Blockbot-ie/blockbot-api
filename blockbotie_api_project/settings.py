@@ -94,6 +94,7 @@ WSGI_APPLICATION = 'blockbotie_api_project.wsgi.application'
 
 CORS_ORIGIN_WHITELIST = (
     'http://localhost:3000',
+    'http://localhost:3001',
     'https://myblockbot-ui.herokuapp.com',
     'http://www.myblockbot.com',
     'http://www.app.myblockbot.com',
