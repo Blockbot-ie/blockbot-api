@@ -136,7 +136,7 @@ class StrategyList(mixins.ListModelMixin,
                   mixins.CreateModelMixin,
                   generics.GenericAPIView):
 
-    permission_classes = (permissions.IsAuthenticated, )
+    permission_classes = (permissions.AllowAny, )
     queryset = Strategy.objects.all()
     serializer_class = StrategySerializer
 
@@ -485,6 +485,13 @@ class GetDailyBalances(generics.GenericAPIView):
 
         return Response(content, status=status.HTTP_200_OK)
 
+class GetGraphData(generics.GenericAPIView):
+
+    permission_classes = (permissions.AllowAny, )
+
+    def get(self, request, *args, **kwargs):
+        print(request.query_params)
+        return Response({}, status=status.HTTP_200_OK)
 
 def connect_to_users_exchange(user_exchange_account):
     exchange_name = Exchange.objects.filter(exchange_id=user_exchange_account.exchange_id).first()
@@ -503,7 +510,6 @@ def connect_to_users_exchange(user_exchange_account):
         content = {'Error': str(error)}
         return Response(content, status=status.HTTP_400_BAD_REQUEST)
     return exchange
-
 
 def check_account_for_available_balances(user_exchange_account, exchange, currency, amount):    
     balance = exchange.fetch_balance()
