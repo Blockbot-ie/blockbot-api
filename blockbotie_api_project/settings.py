@@ -216,4 +216,4 @@ SOCIAL_AUTH_FACEBOOK_PROFILE_EXTRA_PARAMS = {
 }
 
 ACCOUNT_CONFIRM_EMAIL_ON_GET = True
-LOGIN_URL = 'http://localhost:3000/login'
+LOGIN_URL = 'http://www.app.myblockbot.com/login'
