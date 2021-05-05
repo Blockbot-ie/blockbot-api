@@ -179,3 +179,4 @@ def construct_ETH_5_SLOPE_EMA(df, amount):
     x = df.to_json(orient = "records")
     x = ast.literal_eval(x)
     return x
+
