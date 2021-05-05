@@ -11,6 +11,7 @@ import datetime as dt
 from django.utils import timezone
 import time
 from trading_scripts.services.emails import send_bug_email
+from trading_scripts.services import exchange_data
 from allauth.socialaccount.providers.facebook.views import FacebookOAuth2Adapter
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from dj_rest_auth.registration.views import SocialLoginView
@@ -490,9 +491,17 @@ class GetGraphData(generics.GenericAPIView):
     permission_classes = (permissions.AllowAny, )
 
     def get(self, request, *args, **kwargs):
-        print(request.query_params)
-        
-        return Response({}, status=status.HTTP_200_OK)
+        strategy = request.query_params["strategy"]
+        date_from = request.query_params["dateFrom"]
+        date_to = request.query_params["dateTo"]
+        amount = request.query_params["amount"]
+        content = exchange_data.build_data_frame_for_strategy(strategy, date_from, date_to, amount)
+
+        if content is not None:
+            return Response(content, status=status.HTTP_200_OK)
+        else:
+            return Response("No content", status=status.HTTP_400_BAD_REQUEST)
+
 
 def connect_to_users_exchange(user_exchange_account):
     exchange_name = Exchange.objects.filter(exchange_id=user_exchange_account.exchange_id).first()

@@ -3,6 +3,9 @@ from bb.models import Strategies_Suggested, Strategy
 import ccxt
 import pandas as pd
 import san
+import datetime as dt
+import numpy as np
+import ast
 
 def get_latest_ma(df_data=None, period=None, num_of_periods=None):
     """
@@ -71,6 +74,19 @@ def get_san_data(coin, date_from, date_to, interval):
     df = df.sort_index()
     return df
 
+def get_san_data_for_graphs(coin, date_from, date_to, interval):
+    date_from = date_from + "-01-01T00:00:00Z"
+    date_to = date_to + "-01-01T00:00:00Z"
+    df = san.get("ohlcv/ethereum",
+              from_date=date_from,
+              to_date=date_to,
+              interval="1d",
+              aggregation='FIRST')
+    df = df[['openPriceUsd']]
+    df.columns = ['ethereum_Price']
+    df.index.name = 'date'
+    df.index = df.index.tz_localize(None)
+    return df
 
 def build_data_frame_for_strategy(strategy, date_from, date_to, amount):
     
@@ -78,55 +94,48 @@ def build_data_frame_for_strategy(strategy, date_from, date_to, amount):
     trade_fee = 0.005
 
     coin = 'bitcoin' if strategy == '3c82058e-8007-4c8d-8ff5-3561f3870653' or strategy == '3c6bd390-7e32-426b-be28-54e9e430b223' else 'ethereum'
+
+    df = get_san_data_for_graphs(coin, str(date_from), str(date_to), '1d')
     
-    df = get_san_data(coin, date_from, date_to, '1d')
-    
-    if strategy == '3c82058e-8007-4c8d-8ff5-3561f3870653':
-        construct_20_10_MA(df)
+    # if strategy == '3c82058e-8007-4c8d-8ff5-3561f3870653':
+        # construct_20_10_MA(df)
 
+    if strategy == 'c2e1a3c4-f39e-4bdf-8094-16e5336f354a':
+        data = construct_ETH_5_EMA(df, amount)
+        return data
 
-
-
-
-def construct_20_10_MA(df):
-    df['BTC_Price_Close'] = df['Bitcoin_Price'].shift(-1)
-    df['Bitcoin_Change_Ratio'] = df['BTC_Price_Close']/df['Bitcoin_Price']
-    df['20_Week_MA'] = df['Bitcoin_Price'].rolling(7*20, min_periods=7*20).mean()
-    df['10_Week_MA'] = df['Bitcoin_Price'].rolling(7*10, min_periods=7*10).mean()
-
-    df['bubble'] = float('Nan')
-    df.loc[df['Bitcoin_Price'] >= df['20_Week_MA']*2.5, 'bubble'] = 1
-    df.loc[df['Bitcoin_Price'] < df['20_Week_MA'], 'bubble'] = 0
-    df['bubble'] = df['bubble'].ffill()
-
-
-    df = df.loc[date_from: date_to]
-
-    # -- Always held Bitcoin base-case -- #
-    df['profit'] = np.where(df.index == df.index.min(), initial_investment, df['Bitcoin_Change_Ratio'])
-    df['Always_Hold_Bitcoin_profit'] = df['profit'].cumprod()
+def construct_ETH_5_EMA(df, amount):
+    # -- Parameters -- #
+    initial_investment = int(amount)
+    trade_fee = 0.005
+    # ---------------- #
+    df = df.resample('d').first()
+    df['eth_Price_Close'] = df['ethereum_Price'].shift(-1)
+    df['ethereum_Change_Ratio'] = df['eth_Price_Close']/df['ethereum_Price']
+    df['MA'] = df['ethereum_Price'].ewm(span=7*5, min_periods=7*5).mean()
+    # -- Always held ethereum base-case -- #
+    df['profit'] = np.where(df.index == df.index.min(), initial_investment, df['ethereum_Change_Ratio'])
+    df['hodl_value'] = df['profit'].cumprod()
+    # ---------------------------------- #
+    # --- Above Below Strategy --- #
     df['signal'] = float('Nan')
     df.loc[df.index == df.index.min(), 'signal'] = 1
-    df.loc[(df['Bitcoin_Price'] - df['20_Week_MA'] < 0) & (df['bubble'] == 0), 'signal'] = 0
-    df.loc[(df['Bitcoin_Price'] - df['20_Week_MA'] > 0) & (df['bubble'] == 0), 'signal'] = 1
-    df.loc[(df['Bitcoin_Price'] - df['10_Week_MA'] < 0) & (df['bubble'] == 1), 'signal'] = 0
-    df.loc[(df['Bitcoin_Price'] - df['10_Week_MA'] > 0) & (df['bubble'] == 1), 'signal'] = 1
+    df.loc[df['ethereum_Price'] < (df['MA'] * 0.95), 'signal'] = 0
+    df.loc[(df['ethereum_Price'] > (df['MA'] * 1.05)) & (df['signal'].isnull()), 'signal'] = 1
     df['signal'] = df['signal'].ffill()
-
     df['trade_fee_signal1'] = df['signal'].diff(-1)
     df['trade_fee_signal2'] = np.where((df.trade_fee_signal1 == -1) | (df.trade_fee_signal1 == 1), 1, 0)
-
-
-    df['Change_Ratio_New'] = df['Bitcoin_Change_Ratio']
+    df['Change_Ratio_New'] = df['ethereum_Change_Ratio']
     df.loc[df['signal'] == 0, 'Change_Ratio_New'] = 1
     df.loc[df['trade_fee_signal2'] == 1, 'Change_Ratio_New'] = df['Change_Ratio_New'] - trade_fee
-
-
     df['profit'] = np.where(df.index == df.index.min(), initial_investment, df['Change_Ratio_New'])
-    df['cumalative_profit'] = df['profit'].cumprod()
+    df['strategy_value'] = df['profit'].cumprod()
     # -------------------- #
-
-    df['Extra_profit_To_Basecase'] = df['cumalative_profit'] - df['Always_Hold_Bitcoin_profit']
-
-    df['signal'] = df['signal']*3000
-    df['bubble'] = df['bubble']*3000
+    df = df.reset_index()
+    df = df[['date', 'hodl_value', 'strategy_value']]
+    df['hodl_value'] = round(df['hodl_value'], 2)
+    df['strategy_value'] = round(df['strategy_value'], 2)
+    df = df.ffill()
+    x = df.to_json(orient = "records")
+    x = ast.literal_eval(x)
+    return x
