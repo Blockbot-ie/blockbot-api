@@ -103,6 +103,10 @@ def build_data_frame_for_strategy(strategy, date_from, date_to, amount):
     if strategy == 'c2e1a3c4-f39e-4bdf-8094-16e5336f354a':
         data = construct_ETH_5_EMA(df, amount)
         return data
+    
+    if strategy == '57e7096a-511c-4531-b705-5bb40296af87':
+        data = construct_ETH_5_SLOPE_EMA(df, amount)
+        return data
 
 def construct_ETH_5_EMA(df, amount):
     # -- Parameters -- #
@@ -122,6 +126,42 @@ def construct_ETH_5_EMA(df, amount):
     df.loc[df.index == df.index.min(), 'signal'] = 1
     df.loc[df['ethereum_Price'] < (df['MA'] * 0.95), 'signal'] = 0
     df.loc[(df['ethereum_Price'] > (df['MA'] * 1.05)) & (df['signal'].isnull()), 'signal'] = 1
+    df['signal'] = df['signal'].ffill()
+    df['trade_fee_signal1'] = df['signal'].diff(-1)
+    df['trade_fee_signal2'] = np.where((df.trade_fee_signal1 == -1) | (df.trade_fee_signal1 == 1), 1, 0)
+    df['Change_Ratio_New'] = df['ethereum_Change_Ratio']
+    df.loc[df['signal'] == 0, 'Change_Ratio_New'] = 1
+    df.loc[df['trade_fee_signal2'] == 1, 'Change_Ratio_New'] = df['Change_Ratio_New'] - trade_fee
+    df['profit'] = np.where(df.index == df.index.min(), initial_investment, df['Change_Ratio_New'])
+    df['strategy_value'] = df['profit'].cumprod()
+    # -------------------- #
+    df = df.reset_index()
+    df = df[['date', 'hodl_value', 'strategy_value']]
+    df['hodl_value'] = round(df['hodl_value'], 2)
+    df['strategy_value'] = round(df['strategy_value'], 2)
+    df = df.ffill()
+    x = df.to_json(orient = "records")
+    x = ast.literal_eval(x)
+    return x
+
+def construct_ETH_5_SLOPE_EMA(df, amount):
+    initial_investment = int(amount)
+    trade_fee = 0.005
+    # ---------------- #
+    df = df.resample('d').first()
+    df['eth_Price_Close'] = df['ethereum_Price'].shift(-1)
+    df['ethereum_Change_Ratio'] = df['eth_Price_Close']/df['ethereum_Price']
+    df['MA'] = df['ethereum_Price'].ewm(span=7*5, min_periods=7*5).mean()
+    df['slope'] = df['MA'] - df['MA'].shift(1)
+    # -- Always held ethereum base-case -- #
+    df['profit'] = np.where(df.index == df.index.min(), initial_investment, df['ethereum_Change_Ratio'])
+    df['hodl_value'] = df['profit'].cumprod()
+    # ---------------------------------- #
+    # --- Slope Strategy --- #
+    df['signal'] = float('Nan')
+    df.loc[df.index == df.index.min(), 'signal'] = 1
+    df.loc[df['slope'] < -0.75, 'signal'] = 0
+    df.loc[df['slope'] > 0.75, 'signal'] = 1
     df['signal'] = df['signal'].ffill()
     df['trade_fee_signal1'] = df['signal'].diff(-1)
     df['trade_fee_signal2'] = np.where((df.trade_fee_signal1 == -1) | (df.trade_fee_signal1 == 1), 1, 0)
