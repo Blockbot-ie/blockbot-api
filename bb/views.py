@@ -138,21 +138,23 @@ class StrategyList(mixins.ListModelMixin,
                   generics.GenericAPIView):
 
     permission_classes = (permissions.AllowAny, )
-    queryset = Strategy.objects.all()
+    queryset = Strategy.objects.filter(is_active=True)
     serializer_class = StrategySerializer
 
     def get(self, request, *args, **kwargs):
+        
         return self.list(request, *args, **kwargs)
 
 class ExchangeList(mixins.ListModelMixin,
                   mixins.CreateModelMixin,
                   generics.GenericAPIView):
-
+    
     permission_classes = (permissions.AllowAny, )
-    queryset = Exchange.objects.all()
+    queryset = Exchange.objects.filter(is_active=True)
     serializer_class = ExchangeSerializer
 
     def get(self, request, *args, **kwargs):
+        
         return self.list(request, *args, **kwargs)
 
 class GetConnectedExchanges(mixins.CreateModelMixin,
