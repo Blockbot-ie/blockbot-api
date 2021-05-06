@@ -176,7 +176,7 @@ REST_FRAMEWORK = {
 
 SIMPLE_JWT = {
     'USER_ID_FIELD': 'user_id',
-    'ACCESS_TOKEN_LIFETIME': dt.timedelta(minutes=15),
+    'ACCESS_TOKEN_LIFETIME': dt.timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': dt.timedelta(days=7),
     'ROTATE_REFRESH_TOKENS': True, # IMPORTANT
     'BLACKLIST_AFTER_ROTATION': True, # IMPORTANT
