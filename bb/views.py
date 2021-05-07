@@ -248,7 +248,8 @@ class ConnectStrategy(mixins.CreateModelMixin,
     serializer_class = ConnectStrategySerializer
 
     def post(self, request, *args, **kwargs):
-        print(self.request.user.user_id)
+        request.data['current_currency_balance'] = float(request.data['current_currency_balance'])
+        print(request.data)
         user_exchange_account = User_Exchange_Account.objects.filter(is_active=True, user_exchange_account_id=request.data['user_exchange_account']).first()
         try:
             if user_exchange_account:
