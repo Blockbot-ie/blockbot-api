@@ -217,22 +217,22 @@ class ConnectStrategy(mixins.CreateModelMixin,
 
     def post(self, request, *args, **kwargs):
         request.data['current_currency_balance'] = float(request.data['current_currency_balance'])
-        print(request.data)
         user_exchange_account = User_Exchange_Account.objects.filter(is_active=True, user_exchange_account_id=request.data['user_exchange_account']).first()
         try:
             if user_exchange_account:
-                exchange_id = 'coinbasepro'
-                if request.data['exchange'] == '3cd0857b-5b75-407a-ab21-a3620d45af7a':
-                    exchange = connect_to_users_exchange(user_exchange_account.exchange, user_exchange_account.api_key, user_exchange_account.api_secret, None)
+                
+                if user_exchange_account.exchange_id == '3cd0857b-5b75-407a-ab21-a3620d45af7a':
+                    exchange = connect_to_users_exchange(user_exchange_account.exchange_id, user_exchange_account.api_key, user_exchange_account.api_secret, None)
                 else:
-                    exchange = connect_to_users_exchange(user_exchange_account.exchange, user_exchange_account.api_key, user_exchange_account.api_secret, user_exchange_account.api_password)
+                    exchange = connect_to_users_exchange(user_exchange_account.exchange_id, user_exchange_account.api_key, user_exchange_account.api_secret, user_exchange_account.api_password)
 
                 enough = check_account_for_available_balances(user_exchange_account, exchange, request.data['current_currency'], request.data['current_currency_balance'])
 
         except Exception as error:
             content = {'Error': str(error)}
             return Response(content, status=status.HTTP_400_BAD_REQUEST)
-
+        
+        price = exchange.fetch_ticker(request.data['pair'])
         request.data['user'] = self.request.user.user_id
         if request.data['initial_first_symbol_balance'] is None or request.data['initial_first_symbol_balance'] == 0:
             request.data['initial_first_symbol_balance'] = request.data['initial_second_symbol_balance']/price['close']
@@ -460,7 +460,7 @@ class GetGraphData(generics.GenericAPIView):
 
 def connect_to_users_exchange(exchange_id, api_key, api_secret, api_passphrase):
     exchange_name = Exchange.objects.filter(exchange_id=exchange_id).first()
-    print(exchange_name.name)
+    
     try:
         if exchange_name:
             exchange_id = exchange_name.name
@@ -487,8 +487,13 @@ def connect_to_users_exchange(exchange_id, api_key, api_secret, api_passphrase):
 
 def check_account_for_available_balances(user_exchange_account, exchange, currency, amount):    
     balance = exchange.fetch_balance()
-    current_balance = [x for x in balance["info"] if x['currency'] == currency]
-    current_balance = current_balance[0]['balance']
+
+    if exchange.id == 'binance':
+        current_balance = balance[currency]['free']
+    else:
+        current_balance = [x for x in balance["info"] if x['currency'] == currency]
+        current_balance = current_balance[0]['available']
+
     user_strategies_with_current_currency = User_Strategy_Pair.objects.filter(is_active=True, user_exchange_account_id=user_exchange_account.user_exchange_account_id, current_currency=currency)
     balance_taken_by_strategies = user_strategies_with_current_currency.aggregate(Sum('current_currency_balance'))
     if balance_taken_by_strategies['current_currency_balance__sum'] is not None:
@@ -509,6 +514,7 @@ def available_balances(user_exchange_account, exchange):
             new_balance = balance[i]['free']
         else:
             new_balance = [x for x in balance["info"] if x['currency'] == i]
+            new_balance = new_balance[0]['available']
         user_strategies_with_current_currency = User_Strategy_Pair.objects.filter(is_active=True, user_exchange_account_id=user_exchange_account.user_exchange_account_id, current_currency=i)
         balance_taken_by_strategies = user_strategies_with_current_currency.aggregate(Sum('current_currency_balance'))
         if balance_taken_by_strategies['current_currency_balance__sum'] is not None:
