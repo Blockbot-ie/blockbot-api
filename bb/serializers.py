@@ -80,7 +80,8 @@ class ConnectExchangeSerializer(serializers.ModelSerializer):
         fields = ('user_exchange_account_id', 'name', 'api_key', 'api_secret', 'api_password', 'exchange', 'user')
 
     def validate(self, data):
-        exchange_account = User_Exchange_Account.objects.filter(user_exchange_account_id=data['user_exchange_account_id']).first()
+        if data['user_exchange_account_id']:
+            exchange_account = User_Exchange_Account.objects.filter(user_exchange_account_id=data['user_exchange_account_id']).first()
         if exchange_account:
             raise serializers.ValidationError("Exchange Account already Connected")
         else:

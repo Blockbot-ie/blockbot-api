@@ -17,6 +17,7 @@ from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from dj_rest_auth.registration.views import SocialLoginView
 from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 from rest_framework_simplejwt.backends import TokenBackend
+import uuid
 
 
 class FacebookLogin(SocialLoginView):
@@ -35,39 +36,9 @@ class RegisterAPI(generics.GenericAPIView):
     """
     serializer_class = RegisterSerializer
 
-    # def post(self, request, *args, **kwargs):
-    #     try:
-    #         serializer = self.get_serializer(data=request.data)
-    #         if serializer.is_valid():
-    #             user = serializer.save()
-    #             new_user = User.objects.filter(email=user.email).first()
-    #             new_user.first_name = request.data["first_name"]
-    #             new_user.last_name = request.data["last_name"]
-    #             new_user.last_login = dt.datetime.utcnow()
-    #             new_user.save()
-    #             return Response({
-    #                 "user": UserSerializer(user, context=self.get_serializer_context()).data,
-    #                 "token": AuthToken.objects.create(user)[1]
-    #                 })
-    #         else:
-    #             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    #     except Exception as e:
-    #         print(e)
-    #         return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
-
 # Login API
 class LoginAPI(generics.GenericAPIView):
     serializer_class = LoginSerializer
-
-    # def post(self, request, *args, **kwargs):
-    #     serializer = self.get_serializer(data=request.data)
-    #     serializer.is_valid(raise_exception=True)
-    #     user = serializer.validated_data
-    #     _, token = AuthToken.objects.create(user)
-    #     return Response({
-    #         "user": UserSerializer(user, context=self.get_serializer_context()).data,
-    #         "token": token
-    #     })
 
 # Get User API
 class UserAPI(generics.RetrieveAPIView):
@@ -172,7 +143,7 @@ class GetConnectedExchanges(mixins.CreateModelMixin,
                 user_strategy_pairs = User_Strategy_Pair.objects.filter(user_exchange_account_id=exchange.user_exchange_account_id)
                 count = user_strategy_pairs.count()
                 serializer = self.get_serializer(exchange)
-                ccxt_exchange = connect_to_users_exchange(exchange)
+                ccxt_exchange = connect_to_users_exchange(exchange.exchange_id, exchange.api_key, exchange.api_secret, exchange.api_password)
                 available_amounts = available_balances(exchange, ccxt_exchange)
                 data = {
                     "exchange": serializer.data,
@@ -192,17 +163,13 @@ class ConnectExchange(mixins.CreateModelMixin,
     def post(self, request, *args, **kwargs):
         exchange_object = Exchange.objects.filter(exchange_id=request.data['exchange']).first()
         try:
-            exchange_id = exchange_object.name
-            exchange_class = getattr(ccxt, exchange_id)
-            exchange = exchange_class({
-                'apiKey': request.data['api_key'],
-                'secret': request.data['api_secret'],
-                'password': request.data['api_password'],
-                'timeout': 30000,
-                'enableRateLimit': True,
-            })
-            account_id = exchange.fetch_balance()
-            account_id = account_id["info"][0]['profile_id']
+            account_id = None
+            if request.data['exchange'] == '3cd0857b-5b75-407a-ab21-a3620d45af7a':
+                exchange = connect_to_users_exchange(request.data['exchange'], request.data['api_key'], request.data['api_secret'], None)
+            else:
+                exchange = connect_to_users_exchange(request.data['exchange'], request.data['api_key'], request.data['api_secret'], request.data['api_password'])
+                account_id = exchange.fetch_balance()
+                account_id = account_id["info"][0]['profile_id']
             
         except Exception as error:
             print(error)
@@ -211,7 +178,8 @@ class ConnectExchange(mixins.CreateModelMixin,
         
         user_account_with_current_exchange = User_Exchange_Account.objects.filter(exchange_id=exchange_object.exchange_id, user_id=self.request.user.user_id)
         request.data['name'] = exchange_object.display_name + " " + str(user_account_with_current_exchange.count() + 1)
-        request.data['user_exchange_account_id'] = account_id
+        
+        request.data['user_exchange_account_id'] = account_id if account_id != None else uuid.uuid4()
         request.data['user'] = self.request.user.user_id
         
         serializer = self.get_serializer(data=request.data)
@@ -254,28 +222,12 @@ class ConnectStrategy(mixins.CreateModelMixin,
         try:
             if user_exchange_account:
                 exchange_id = 'coinbasepro'
-                exchange_class = getattr(ccxt, exchange_id)
-                exchange = exchange_class({
-                    'apiKey': user_exchange_account.api_key,
-                    'secret': user_exchange_account.api_secret,
-                    'password': user_exchange_account.api_password,
-                    'timeout': 30000,
-                    'enableRateLimit': True,
-                })
-                balance = exchange.fetch_balance()
-                price = exchange.fetch_ticker(request.data['pair'])
-                current_balance = [x for x in balance["info"] if x['currency'] == request.data['current_currency']]
-                current_balance = current_balance[0]['balance']
-                user_strategies_with_current_currency = User_Strategy_Pair.objects.filter(is_active=True, user_exchange_account_id=request.data['user_exchange_account'], current_currency=request.data['current_currency'])
-                balance_taken_by_strategies = user_strategies_with_current_currency.aggregate(Sum('current_currency_balance'))
-                if balance_taken_by_strategies['current_currency_balance__sum'] is not None:
-                    balance_available = float(current_balance) - balance_taken_by_strategies['current_currency_balance__sum']
+                if request.data['exchange'] == '3cd0857b-5b75-407a-ab21-a3620d45af7a':
+                    exchange = connect_to_users_exchange(user_exchange_account.exchange, user_exchange_account.api_key, user_exchange_account.api_secret, None)
                 else:
-                    balance_available = float(current_balance)
-                if balance_available < request.data['current_currency_balance']:
-                    amount_required = request.data['current_currency_balance'] - balance_available
-                    content = {'Error': "Insufficient Funds. Please fund your account with {0} {1}".format(amount_required, request.data['current_currency'])}
-                    return Response(content, status=status.HTTP_400_BAD_REQUEST)
+                    exchange = connect_to_users_exchange(user_exchange_account.exchange, user_exchange_account.api_key, user_exchange_account.api_secret, user_exchange_account.api_password)
+
+                enough = check_account_for_available_balances(user_exchange_account, exchange, request.data['current_currency'], request.data['current_currency_balance'])
 
         except Exception as error:
             content = {'Error': str(error)}
@@ -368,7 +320,7 @@ class TopUpStrategy(generics.GenericAPIView):
     def post(self, request, *args, **kwargs):
         user_strategy_pair = User_Strategy_Pair.objects.filter(is_active=True, id=request.data['strategy_pair_id']).first()
         user_exchange_account = User_Exchange_Account.objects.filter(is_active=True, user_exchange_account_id=user_strategy_pair.user_exchange_account_id).first()
-        exchange = connect_to_users_exchange(user_exchange_account)
+        exchange = connect_to_users_exchange(user_exchange_account.exchange_id, user_exchange_account.api_key, user_exchange_account.api_secret, user_exchange_account.api_passphrase)
         split = user_strategy_pair.pair.index('/')
         first_symbol = user_strategy_pair.pair[:split]
         second_symbol = user_strategy_pair.pair[split+1:]
@@ -506,16 +458,25 @@ class GetGraphData(generics.GenericAPIView):
             return Response("No content", status=status.HTTP_400_BAD_REQUEST)
 
 
-def connect_to_users_exchange(user_exchange_account):
-    exchange_name = Exchange.objects.filter(exchange_id=user_exchange_account.exchange_id).first()
+def connect_to_users_exchange(exchange_id, api_key, api_secret, api_passphrase):
+    exchange_name = Exchange.objects.filter(exchange_id=exchange_id).first()
+    print(exchange_name.name)
     try:
-        if user_exchange_account:
+        if exchange_name:
             exchange_id = exchange_name.name
             exchange_class = getattr(ccxt, exchange_id)
-            exchange = exchange_class({
-                'apiKey': user_exchange_account.api_key,
-                'secret': user_exchange_account.api_secret,
-                'password': user_exchange_account.api_password,
+            if exchange_name.name == 'coinbasepro':
+                exchange = exchange_class({
+                'apiKey': api_key,
+                'secret': api_secret,
+                'password': api_passphrase,
+                'timeout': 30000,
+                'enableRateLimit': True,
+            })
+            else:
+                exchange = exchange_class({
+                'apiKey': api_key,
+                'secret': api_secret,
                 'timeout': 30000,
                 'enableRateLimit': True,
             })
@@ -544,13 +505,16 @@ def available_balances(user_exchange_account, exchange):
     balance = exchange.fetch_balance()
     available_amounts = {}
     for i in ['USDC', 'BTC', 'ETH']:
-        new_balance = [x for x in balance["info"] if x['currency'] == i]
+        if exchange.id == 'binance':
+            new_balance = balance[i]['free']
+        else:
+            new_balance = [x for x in balance["info"] if x['currency'] == i]
         user_strategies_with_current_currency = User_Strategy_Pair.objects.filter(is_active=True, user_exchange_account_id=user_exchange_account.user_exchange_account_id, current_currency=i)
         balance_taken_by_strategies = user_strategies_with_current_currency.aggregate(Sum('current_currency_balance'))
         if balance_taken_by_strategies['current_currency_balance__sum'] is not None:
-            available_amounts[i] = float(new_balance[0]['balance']) - balance_taken_by_strategies['current_currency_balance__sum']
+            available_amounts[i] = float(new_balance) - balance_taken_by_strategies['current_currency_balance__sum']
         else:
-            available_amounts[i] = float(new_balance[0]['balance'])
+            available_amounts[i] = float(new_balance)
 
     return available_amounts
     
