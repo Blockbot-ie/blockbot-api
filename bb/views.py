@@ -19,7 +19,6 @@ from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 from rest_framework_simplejwt.backends import TokenBackend
 import uuid
 
-
 class FacebookLogin(SocialLoginView):
     adapter_class = FacebookOAuth2Adapter
 
@@ -545,7 +544,4 @@ def update_order(order_id, exchange, user_strategy_pair):
         user_strategy_pair.initial_second_symbol_balance += completed_order['cost'] - round(completed_order['fee']['cost'], 2)
         new_order.amount = completed_order['cost']
     new_order.save()
-    user_strategy_pair.save()
-
-
-        
+    user_strategy_pair.save()        
