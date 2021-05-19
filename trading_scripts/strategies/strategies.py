@@ -58,7 +58,7 @@ def twenty_ten_MA(strategy):
             symbol = Pairs.objects.filter(pair_id=pair.pair_id).first()
             date_from = dt.datetime.today() + dt.timedelta(weeks=-30)
             date_to = dt.datetime.today()
-            df = exchange_data.load_prices(exchange='coinbasepro', price_pair=symbol.symbol, frequency='1d', date_from=date_from, date_to=date_to)
+            df = exchange_data.load_prices(exchange='binance', price_pair=symbol.symbol, frequency='1d', date_from=date_from, date_to=date_to)
             # df.loc['2020-01-01': ]  # Doesn't work when prices are zero initially so avoiding 2010
 
             df['20_Week_MA'] = df['Open'].rolling(7*20, min_periods=7*20).mean()
@@ -76,7 +76,6 @@ def twenty_ten_MA(strategy):
             df.loc[(df['Open'] - df['10_Week_MA'] < 0) & (df['bubble'] == 1), 'signal'] = 0
             df.loc[(df['Open'] - df['10_Week_MA'] > 0) & (df['bubble'] == 1), 'signal'] = 1
             df['signal'] = df['signal'].ffill()
-
             update_target_currency(symbol.symbol, df.iloc[-1]['signal'], pair)
 
     except Exception as e:
@@ -212,7 +211,7 @@ def update_target_currency(pair, signal, strategy_pair):
         target_currency = first_symbol
     else:
         target_currency = second_symbol
-    # target_currency = 'USDC'
+    # target_currency = 'BTC'
     data = Strategies_Suggested()
     data.start_time_utc = start_time_utc
     data.target_currency = target_currency

@@ -10,6 +10,7 @@ import sys
 from multiprocessing import Pool
 from functools import partial
 from trading_scripts.services import emails
+from django.db.models import Q
 
 def get_target_currencies():
     print('Getting target currencies')
@@ -65,6 +66,7 @@ def buy_or_sell():
     try:
         print('Starting buy and sell script')
         user_strategy_pairs = User_Strategy_Pair.objects.filter(is_active=True)
+        x = user_strategy_pairs.count()
         target_currencies = get_target_currencies()
 
         func = partial(run_buy_or_sell_process, target_currencies)
@@ -78,7 +80,7 @@ def buy_or_sell():
         return
 
 def update_orders():
-    open_orders = Orders.objects.filter(status='open')
+    open_orders = Orders.objects.filter(Q(status='open')|Q(status='new'))
     try:
         print('Updating orders')
         a_pool = Pool(processes=4)
@@ -118,17 +120,13 @@ def run_buy_or_sell_process(target_currencies, user):
                 if order:
                     price = user_exchange.fetch_ticker(user.pair)
                     new_order = Orders()
-                    new_order.order_id = order['id']
-                    new_order.market = order['symbol']
-                    new_order.side = order['side']
-                    new_order.size = order['info']['specified_funds']
-                    new_order.filled = order['filled']
                     new_order.filled_price = price['close']
-                    new_order.fee = round(order['fee']['cost'], 2)
-                    new_order.status = order['status']
-                    new_order.amount = order['amount']
                     new_order.user_strategy_pair = user
                     new_order.user = user.user
+                    if user_exchange.id == 'binance':
+                        new_order = binance_buy_order(new_order, order, user_exchange)
+                    else:
+                        new_order = coinbasepro_buy_order(new_order, order)
                     new_order.save()
 
             except Exception as e:
@@ -148,17 +146,13 @@ def run_buy_or_sell_process(target_currencies, user):
                 if order:
                     price = user_exchange.fetch_ticker(user.pair)
                     new_order = Orders()
-                    new_order.order_id = order['id']
-                    new_order.market = order['symbol']
-                    new_order.side = order['side']
-                    new_order.size = order['info']['size']
-                    new_order.filled = order['filled']
                     new_order.filled_price = price['close']
-                    new_order.fee = round(order['fee']['cost'], 2)
-                    new_order.status = order['status']
-                    new_order.amount = order['cost']
                     new_order.user_strategy_pair = user
                     new_order.user = user.user
+                    if user_exchange.id == 'binance':
+                        new_order = binance_sell_order(new_order, order, user_exchange)
+                    else:
+                        new_order = coinbasepro_sell_order(new_order, order)
                     new_order.save()
             except Exception as e:
                 print("An exception occurred: ", e)
@@ -175,10 +169,11 @@ def run_update_order_process(open_order):
     user_exchange_account = User_Exchange_Account.objects.filter(is_active=True, user_exchange_account_id=user_strategy_pair.user_exchange_account_id).first()
     exchange = Exchange.objects.filter(exchange_id=user_exchange_account.exchange_id).first()
     user_exchange = get_exchange(exchange.name, user_exchange_account.api_key, user_exchange_account.api_secret, user_exchange_account.sub_account_name, user_exchange_account.api_password)
-    completed_order = user_exchange.fetch_order(open_order.order_id)
+    completed_order = user_exchange.fetch_order(open_order.order_id, open_order.market)
     open_order.filled = completed_order['filled']
-    open_order.fee = round(completed_order['fee']['cost'], 2)
     open_order.status = completed_order['status']
+    if user_exchange.id != 'binance':
+        open_order.fee = round(completed_order['fee']['cost'], 2)
     split = user_strategy_pair.pair.index('/')
     first_symbol = user_strategy_pair.pair[:split]
     second_symbol = user_strategy_pair.pair[split+1:]
@@ -188,7 +183,61 @@ def run_update_order_process(open_order):
         open_order.amount = completed_order['amount']
     if open_order.side == 'sell':
         user_strategy_pair.current_currency = second_symbol
-        user_strategy_pair.current_currency_balance = completed_order['cost'] - round(completed_order['fee']['cost'], 2)
+        user_strategy_pair.current_currency_balance = completed_order['cost'] - open_order.fee
         open_order.amount = completed_order['cost']
     open_order.save()
+    user_strategy_pair.no_of_failed_attempts = 0
     user_strategy_pair.save()
+
+def binance_buy_order(new_order, order, user_exchange):
+    new_order.order_id = order['id']
+    new_order.market = order['symbol']
+    new_order.side = order['side']
+    new_order.size = order['cost']
+    new_order.filled = order['filled']
+    new_order.status = 'open'
+    new_order.amount = order['amount']
+    if order['fee']['currency'] != 'USDT':
+        fee_price = user_exchange.fetch_ticker(order['fee']['currency'] + '/USDT')
+        new_order.fee = order['fee']['cost'] * fee_price['close']
+    else:
+        new_order.fee = order['fee']['cost']
+    return new_order
+
+def binance_sell_order(new_order, order, user_exchange):
+    new_order.order_id = order['id']
+    new_order.market = order['symbol']
+    new_order.side = order['side']
+    new_order.size = order['amount']
+    new_order.filled = order['filled']
+    new_order.status = 'open'
+    new_order.amount = order['cost']
+    new_order.price = order['price']
+    if order['fee']['currency'] != 'USDT':
+        fee_price = user_exchange.fetch_ticker(order['fee']['currency'] + '/USDT')
+        new_order.fee = order['fee']['cost'] * fee_price['close']
+    else:
+        new_order.fee = order['fee']['cost']
+    return new_order
+
+def coinbasepro_buy_order(new_order, order):
+    new_order.order_id = order['id']
+    new_order.market = order['symbol']
+    new_order.side = order['side']
+    new_order.size = order['info']['specified_funds']
+    new_order.filled = order['filled']
+    new_order.fee = round(order['fee']['cost'], 2)
+    new_order.status = order['status']
+    new_order.amount = order['amount']
+    return new_order
+
+def coinbasepro_sell_order(new_order, order):
+    new_order.order_id = order['id']
+    new_order.market = order['symbol']
+    new_order.side = order['side']
+    new_order.size = order['info']['size']
+    new_order.filled = order['filled']
+    new_order.fee = round(order['fee']['cost'], 2)
+    new_order.status = order['status']
+    new_order.amount = order['cost']
+    return new_order

@@ -1,3 +1,4 @@
+from django.db.models.query import QuerySet
 from rest_framework import permissions, status, generics, mixins
 from rest_framework.response import Response
 from django.http import JsonResponse
@@ -299,7 +300,7 @@ class OrdersList(mixins.CreateModelMixin,
         if user_id is not None:
             queryset = Orders.objects.filter(user=user_id).order_by('-created_on')
             return queryset
-        return queryset.none()
+        return QuerySet.none()
     
 class BugReport(generics.GenericAPIView):
 
@@ -508,7 +509,7 @@ def check_account_for_available_balances(user_exchange_account, exchange, curren
 def available_balances(user_exchange_account, exchange):
     balance = exchange.fetch_balance()
     available_amounts = {}
-    for i in ['USDC', 'BTC', 'ETH']:
+    for i in ['USDC', 'BTC', 'ETH', 'USDT']:
         if exchange.id == 'binance':
             new_balance = balance[i]['free']
         else:
