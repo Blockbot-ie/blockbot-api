@@ -120,6 +120,7 @@ def run_buy_or_sell_process(target_currencies, user):
                 if order:
                     price = user_exchange.fetch_ticker(user.pair)
                     new_order = Orders()
+                    new_order.size_symbol = second_symbol
                     new_order.filled_price = price['close']
                     new_order.user_strategy_pair = user
                     new_order.user = user.user
@@ -146,6 +147,7 @@ def run_buy_or_sell_process(target_currencies, user):
                 if order:
                     price = user_exchange.fetch_ticker(user.pair)
                     new_order = Orders()
+                    new_order.size_symbol = first_symbol
                     new_order.filled_price = price['close']
                     new_order.user_strategy_pair = user
                     new_order.user = user.user
@@ -197,6 +199,7 @@ def binance_buy_order(new_order, order, user_exchange):
     new_order.filled = order['filled']
     new_order.status = 'open'
     new_order.amount = order['amount']
+    new_order.price = order['price']
     if order['fee']['currency'] != 'USDT':
         fee_price = user_exchange.fetch_ticker(order['fee']['currency'] + '/USDT')
         new_order.fee = order['fee']['cost'] * fee_price['close']

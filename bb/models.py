@@ -91,6 +91,7 @@ class Orders(models.Model):
     market = models.CharField(_('Market'), max_length=50, blank=True)
     side = models.CharField(_('Side'), max_length=50, blank=True)
     size = models.FloatField(_('Order Size'), default=0)
+    size_symbol = models.CharField(_('Size Symbol'), max_length=50, blank=True)
     filled = models.FloatField(_('Filled'), default=0)
     filled_price = models.FloatField(_('Filled Price'), default=0)
     fee = models.FloatField(_('Fee'), default=0)
