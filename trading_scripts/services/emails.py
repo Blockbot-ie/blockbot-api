@@ -11,15 +11,16 @@ def send_bug_email(issue_type, area, issue, sender):
         html = """\
                 <html>
                 <body>
+                <h3>Report submitted by {3}</h3>
                     <p><b>Type: </b>{0}</p>
                     <p><b>Area: </b>{1}</p>
                     <p><b>Description: </b>{2}</p>
                 </body>
                 </html>
-                """.format(issue_type, area, issue)
+                """.format(issue_type, area, issue, sender)
     
         port = 465
-        gmail_password = 'ClingomintAMDG101'
+        gmail_password = 'neikdnzctqdtotof'
         # Create a secure SSL context
         context = ssl.create_default_context()
 
@@ -34,13 +35,13 @@ def send_bug_email(issue_type, area, issue, sender):
 
         with smtplib.SMTP_SSL("smtp.gmail.com", port, context=context) as server:
             print('Logging into email server')
-            server.login(sender_email, gmail_password)
+            server.login(receiver_email, gmail_password)
             print('Sending email')
             message["To"] = receiver_email
             server.sendmail(
                 sender_email, receiver_email, message.as_string()
             )
-            print('Email sent to {0}'.format(receiver_email))
+            print('Email sent by {0}'.format(sender_email))
     except Exception as error:
         print("Error sending order emails ", error)
 
