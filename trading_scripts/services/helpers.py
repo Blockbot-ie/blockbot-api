@@ -75,73 +75,79 @@ def buy_or_sell():
         return
 
 def run_buy_or_sell_process(target_currencies, user):
-    user_exchange_account = User_Exchange_Account.objects.filter(is_active=True, user_exchange_account_id=user.user_exchange_account_id).first()
-    exchange = Exchange.objects.filter(exchange_id=user_exchange_account.exchange_id).first()
-    user_exchange = get_exchange(exchange.name, user_exchange_account.api_key, user_exchange_account.api_secret, user_exchange_account.sub_account_name, user_exchange_account.api_password)
-    target_currency = [x['target_currency'] for x in target_currencies if x['pair'] == user.pair and user.strategy_id][0]
-    split = user.pair.index('/')
-    first_symbol = user.pair[:split]
-    second_symbol = user.pair[split+1:]
-    
-    print('Want to be in ', target_currency)
-    
-    if target_currency == user.current_currency:
-        print('Condition already satisfied')
-        pass
-    else:
-        if target_currency == first_symbol:
-            print('Buying ', target_currency)
-            amount = 1
-            price = user.current_currency_balance
-            try:
-                order = user_exchange.create_order(user.pair, 'market', 'buy', amount, price)
-                if order:
-                    price = user_exchange.fetch_ticker(user.pair)
-                    new_order = Orders()
-                    new_order.size_symbol = second_symbol
-                    new_order.filled_price = price['close']
-                    new_order.user_strategy_pair = user
-                    new_order.user = user.user
-                    if user_exchange.id == 'binance':
-                        new_order = binance_buy_order(new_order, order, user_exchange)
-                    else:
-                        new_order = coinbasepro_buy_order(new_order, order)
-                    new_order.save()
-
-            except Exception as e:
-                print("An exception occurred: ", e)
-                user.no_of_failed_attempts += 1
-                if user.no_of_failed_attempts >= 5:
-                    user.is_active = False
-                user.save()
-                user_info = User.objects.get(user_id=user.user_id)
-                emails.send_order_error_email(user_info, e.args, user.no_of_failed_attempts)
+    try:
+        user_exchange_account = User_Exchange_Account.objects.filter(is_active=True, user_exchange_account_id=user.user_exchange_account_id).first()
+        exchange = Exchange.objects.filter(exchange_id=user_exchange_account.exchange_id).first()
+        user_exchange = get_exchange(exchange.name, user_exchange_account.api_key, user_exchange_account.api_secret, user_exchange_account.sub_account_name, user_exchange_account.api_password)
+        target_currency = [x['target_currency'] for x in target_currencies if x['pair'] == user.pair and user.strategy_id][0]
+        split = user.pair.index('/')
+        first_symbol = user.pair[:split]
+        second_symbol = user.pair[split+1:]
         
-        elif target_currency == second_symbol:
-            print('Selling ', target_currency)
-            amount = user.current_currency_balance
-            try:
-                order = user_exchange.create_order(user.pair, 'market', 'sell', amount)
-                if order:
-                    price = user_exchange.fetch_ticker(user.pair)
-                    new_order = Orders()
-                    new_order.size_symbol = first_symbol
-                    new_order.filled_price = price['close']
-                    new_order.user_strategy_pair = user
-                    new_order.user = user.user
-                    if user_exchange.id == 'binance':
-                        new_order = binance_sell_order(new_order, order, user_exchange)
-                    else:
-                        new_order = coinbasepro_sell_order(new_order, order)
-                    new_order.save()
-            except Exception as e:
-                print("An exception occurred: ", e)
-                user.no_of_failed_attempts += 1
-                if user.no_of_failed_attempts >= 5:
-                    user.is_active = False
-                user.save()
-                user_info = User.objects.get(user_id=user.user_id)
-                emails.send_order_error_email(user_info, e.args, user.no_of_failed_attempts)
+        print('Want to be in ', target_currency)
+        
+        if target_currency == user.current_currency:
+            print('Condition already satisfied')
+            pass
+        else:
+            if target_currency == first_symbol:
+                print('Buying ', target_currency)
+                amount = 1
+                price = user.current_currency_balance
+                try:
+                    order = user_exchange.create_order(user.pair, 'market', 'buy', amount, price)
+                    if order:
+                        price = user_exchange.fetch_ticker(user.pair)
+                        new_order = Orders()
+                        new_order.size_symbol = second_symbol
+                        new_order.filled_price = price['close']
+                        new_order.user_strategy_pair = user
+                        new_order.user = user.user
+                        if user_exchange.id == 'binance':
+                            new_order = binance_buy_order(new_order, order, user_exchange)
+                        else:
+                            new_order = coinbasepro_buy_order(new_order, order)
+                        new_order.save()
+
+                except Exception as e:
+                    print("An exception occurred: ", e)
+                    user.no_of_failed_attempts += 1
+                    if user.no_of_failed_attempts >= 5:
+                        user.is_active = False
+                    user.save()
+                    user_info = User.objects.get(user_id=user.user_id)
+                    emails.send_order_error_email(user_info, e.args, user.no_of_failed_attempts)
+            
+            elif target_currency == second_symbol:
+                print('Selling ', target_currency)
+                amount = user.current_currency_balance
+                try:
+                    order = user_exchange.create_order(user.pair, 'market', 'sell', amount)
+                    if order:
+                        price = user_exchange.fetch_ticker(user.pair)
+                        new_order = Orders()
+                        new_order.size_symbol = first_symbol
+                        new_order.filled_price = price['close']
+                        new_order.user_strategy_pair = user
+                        new_order.user = user.user
+                        if user_exchange.id == 'binance':
+                            new_order = binance_sell_order(new_order, order, user_exchange)
+                        else:
+                            new_order = coinbasepro_sell_order(new_order, order)
+                        new_order.save()
+                except Exception as e:
+                    print("An exception occurred: ", e)
+                    user.no_of_failed_attempts += 1
+                    if user.no_of_failed_attempts >= 5:
+                        user.is_active = False
+                    user.save()
+                    user_info = User.objects.get(user_id=user.user_id)
+                    emails.send_order_error_email(user_info, e.args, user.no_of_failed_attempts)
+    except Exception as e:
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+        print(exc_type, fname, exc_tb.tb_lineno, e)
+        return
 
 
 def run_update_order_process(open_order):
