@@ -1,4 +1,5 @@
 import django
+from django import db
 django.setup()
 import datetime as dt
 from django.utils import timezone
@@ -7,8 +8,6 @@ from bb.models import User, Strategies_Suggested, Strategy_Supported_Pairs, Pair
 import os
 import os.path
 import sys
-from multiprocessing import Pool
-from functools import partial
 from trading_scripts.services import emails
 from django.db.models import Q
 
@@ -66,26 +65,9 @@ def buy_or_sell():
     try:
         print('Starting buy and sell script')
         user_strategy_pairs = User_Strategy_Pair.objects.filter(is_active=True)
-        x = user_strategy_pairs.count()
         target_currencies = get_target_currencies()
+        return target_currencies, user_strategy_pairs       
 
-        func = partial(run_buy_or_sell_process, target_currencies)
-        a_pool = Pool(processes=4)
-        a_pool.map(func, user_strategy_pairs) 
-
-    except Exception as e:
-        exc_type, exc_obj, exc_tb = sys.exc_info()
-        fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-        print(exc_type, fname, exc_tb.tb_lineno, e)
-        return
-
-def update_orders():
-    open_orders = Orders.objects.filter(Q(status='open')|Q(status='new'))
-    try:
-        print('Updating orders')
-        a_pool = Pool(processes=4)
-        a_pool.map(run_update_order_process, open_orders) 
-        
     except Exception as e:
         exc_type, exc_obj, exc_tb = sys.exc_info()
         fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
@@ -100,10 +82,6 @@ def run_buy_or_sell_process(target_currencies, user):
     split = user.pair.index('/')
     first_symbol = user.pair[:split]
     second_symbol = user.pair[split+1:]
-    try:
-        balances = user_exchange.fetch_balance()
-    except Exception as e:
-        print(e)
     
     print('Want to be in ', target_currency)
     
@@ -167,29 +145,37 @@ def run_buy_or_sell_process(target_currencies, user):
 
 
 def run_update_order_process(open_order):
-    user_strategy_pair = User_Strategy_Pair.objects.filter(id=open_order.user_strategy_pair_id).first()
-    user_exchange_account = User_Exchange_Account.objects.filter(is_active=True, user_exchange_account_id=user_strategy_pair.user_exchange_account_id).first()
-    exchange = Exchange.objects.filter(exchange_id=user_exchange_account.exchange_id).first()
-    user_exchange = get_exchange(exchange.name, user_exchange_account.api_key, user_exchange_account.api_secret, user_exchange_account.sub_account_name, user_exchange_account.api_password)
-    completed_order = user_exchange.fetch_order(open_order.order_id, open_order.market)
-    open_order.filled = completed_order['filled']
-    open_order.status = completed_order['status']
-    if user_exchange.id != 'binance':
-        open_order.fee = round(completed_order['fee']['cost'], 2)
-    split = user_strategy_pair.pair.index('/')
-    first_symbol = user_strategy_pair.pair[:split]
-    second_symbol = user_strategy_pair.pair[split+1:]
-    if open_order.side == 'buy':
-        user_strategy_pair.current_currency = first_symbol
-        user_strategy_pair.current_currency_balance = completed_order['amount']
-        open_order.amount = completed_order['amount']
-    if open_order.side == 'sell':
-        user_strategy_pair.current_currency = second_symbol
-        user_strategy_pair.current_currency_balance = completed_order['cost'] - open_order.fee
-        open_order.amount = completed_order['cost']
-    open_order.save()
-    user_strategy_pair.no_of_failed_attempts = 0
-    user_strategy_pair.save()
+    try:
+        user_strategy_pair = User_Strategy_Pair.objects.filter(id=open_order.user_strategy_pair_id).first()
+        user_exchange_account = User_Exchange_Account.objects.filter(is_active=True, user_exchange_account_id=user_strategy_pair.user_exchange_account_id).first()
+        exchange = Exchange.objects.filter(exchange_id=user_exchange_account.exchange_id).first()
+        print("Updating order for pair {0} with order id {1}".format(user_strategy_pair.id, open_order.order_id))
+        user_exchange = get_exchange(exchange.name, user_exchange_account.api_key, user_exchange_account.api_secret, user_exchange_account.sub_account_name, user_exchange_account.api_password)
+        completed_order = user_exchange.fetch_order(open_order.order_id, open_order.market)
+        open_order.filled = completed_order['filled']
+        open_order.status = completed_order['status']
+        if user_exchange.id != 'binance':
+            open_order.fee = round(completed_order['fee']['cost'], 2)
+        split = user_strategy_pair.pair.index('/')
+        first_symbol = user_strategy_pair.pair[:split]
+        second_symbol = user_strategy_pair.pair[split+1:]
+        if open_order.side == 'buy':
+            user_strategy_pair.current_currency = first_symbol
+            user_strategy_pair.current_currency_balance = completed_order['amount']
+            open_order.amount = completed_order['amount']
+        if open_order.side == 'sell':
+            user_strategy_pair.current_currency = second_symbol
+            user_strategy_pair.current_currency_balance = completed_order['cost'] - open_order.fee
+            open_order.amount = completed_order['cost']
+        open_order.save()
+        print("Order {0} updated successfully".format(open_order.order_id))
+        user_strategy_pair.no_of_failed_attempts = 0
+        user_strategy_pair.save()
+    except Exception as e:
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+        print(exc_type, fname, exc_tb.tb_lineno, e)
+        return
 
 def binance_buy_order(new_order, order, user_exchange):
     new_order.order_id = order['id']
