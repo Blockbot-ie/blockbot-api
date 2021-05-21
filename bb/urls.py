@@ -1,5 +1,5 @@
 from django.urls import path, include, re_path
-from .views import RegisterAPI, LoginAPI, UserAPI, DashBoardData, StrategyList, ExchangeList, ConnectExchange, GetConnectedExchanges, ConnectStrategy, GetConnectedStrategies, StrategyPairs, OrdersList, BugReport, TopUpStrategy, FacebookLogin, GoogleLogin, GetDailyBalances, GetGraphData
+from .views import RegisterAPI, LoginAPI, UserAPI, DashBoardData, StrategyList, ExchangeList, ConnectExchange, GetConnectedExchanges, ConnectStrategy, GetConnectedStrategies, StrategyPairs, OrdersList, BugReport, TopUpStrategy, FacebookLogin, GoogleLogin, GetDailyBalances, GetGraphData, ReactivateStrategyPair
 from django.views.generic import TemplateView
 from dj_rest_auth.views import PasswordResetView, PasswordResetConfirmView
 from dj_rest_auth.registration.views import RegisterView, VerifyEmailView, ConfirmEmailView
@@ -27,6 +27,7 @@ urlpatterns = [
     path('connect-strategies', ConnectStrategy.as_view()),
     path('get-connected-strategies', GetConnectedStrategies.as_view()),
     path('strategy_pairs', StrategyPairs.as_view()),
+    path('reactivate-pair', ReactivateStrategyPair.as_view()),
     path('orders', OrdersList.as_view()),
     path('submit-bug-report', BugReport.as_view()),
     path('top-up-strategy', TopUpStrategy.as_view()),

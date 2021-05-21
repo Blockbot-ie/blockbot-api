@@ -13,6 +13,7 @@ from django.utils import timezone
 import time
 from trading_scripts.services.emails import send_bug_email
 from trading_scripts.services import exchange_data
+from trading_scripts.services import helpers
 from allauth.socialaccount.providers.facebook.views import FacebookOAuth2Adapter
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from dj_rest_auth.registration.views import SocialLoginView
@@ -60,7 +61,7 @@ class DashBoardData(mixins.ListModelMixin,
     permission_classes = (permissions.IsAuthenticated, )
 
     def get(self, request, *args, **kwargs):
-        user_pairs = User_Strategy_Pair.objects.filter(user_id=self.request.user.user_id, is_active=True) 
+        user_pairs = User_Strategy_Pair.objects.filter(user_id=self.request.user.user_id) 
         
         inc_or_dec_vs_hodl = []
         balances = 0.0
@@ -289,6 +290,27 @@ class StrategyPairs(mixins.CreateModelMixin,
             print(error)
             return Response(content, status=status.HTTP_400_BAD_REQUEST)
 
+class ReactivateStrategyPair(mixins.CreateModelMixin,
+                    generics.ListAPIView):
+
+    permission_classes = (permissions.IsAuthenticated, )
+    serializer_class = OrdersSerializer
+
+    def post(self, request, *args, **kwargs):
+        try:
+            user_pair = User_Strategy_Pair.objects.get(id=request.data['pair_id'])
+            user_pair.is_active = True
+            user_pair.no_of_failed_attempts = 0
+            user_pair.modified_on = now = dt.datetime.now(tz=timezone.utc)
+            user_pair.save()
+            content = {'Success': 'Pair reactivated'}
+            return Response(content, status=status.HTTP_201_CREATED)
+        except Exception as error:
+            content = {'Error': str(error)}
+            print(error)
+            return Response(content, status=status.HTTP_400_BAD_REQUEST)
+
+
 class OrdersList(mixins.CreateModelMixin,
                     generics.ListAPIView):
 
@@ -350,17 +372,14 @@ class TopUpStrategy(generics.GenericAPIView):
                         if order:
                             price = exchange.fetch_ticker(user_strategy_pair.pair)
                             new_order = Orders()
-                            new_order.order_id = order['id']
-                            new_order.market = order['symbol']
-                            new_order.side = order['side']
-                            new_order.size = order['info']['specified_funds']
-                            new_order.filled = order['filled']
+                            new_order.size_symbol = second_symbol
                             new_order.filled_price = price['close']
-                            new_order.fee = round(order['fee']['cost'], 2)
-                            new_order.status = order['status']
-                            new_order.amount = order['amount']
                             new_order.user_strategy_pair = user_strategy_pair
                             new_order.user = self.request.user
+                            if exchange.id == 'binance':
+                                new_order = helpers.binance_buy_order(new_order, order, exchange)
+                            else:
+                                new_order = helpers.coinbasepro_buy_order(new_order, order)
                             new_order.save()
                             update_order(order['id'], exchange, user_strategy_pair)
                             user_strategy_pair.initial_second_symbol_balance += request.data['amount']
@@ -375,17 +394,14 @@ class TopUpStrategy(generics.GenericAPIView):
                             
                             price = exchange.fetch_ticker(user_strategy_pair.pair)
                             new_order = Orders()
-                            new_order.order_id = order['id']
-                            new_order.market = order['symbol']
-                            new_order.side = order['side']
-                            new_order.size = order['info']['size']
-                            new_order.filled = order['filled']
+                            new_order.size_symbol = first_symbol
                             new_order.filled_price = price['close']
-                            new_order.fee = round(order['fee']['cost'], 2)
-                            new_order.status = order['status']
-                            new_order.amount = order['cost']
                             new_order.user_strategy_pair = user_strategy_pair
                             new_order.user = self.request.user
+                            if exchange.id == 'binance':
+                                new_order = helpers.binance_sell_order(new_order, order, exchange)
+                            else:
+                                new_order = helpers.coinbasepro_sell_order(new_order, order)
                             new_order.save()
                             update_order(order['id'], exchange, user_strategy_pair)
                             user_strategy_pair.initial_first_symbol_balance += request.data['amount']

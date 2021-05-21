@@ -108,7 +108,7 @@ class ConnectStrategySerializer(serializers.ModelSerializer):
 class GetConnectedStrategiesSerializer(serializers.ModelSerializer):
     class Meta:
         model = User_Strategy_Pair
-        fields = ('id', 'strategy', 'user_exchange_account', 'pair', 'initial_first_symbol_balance', 'initial_second_symbol_balance', 'current_currency', 'current_currency_balance')
+        fields = ('id', 'strategy', 'user_exchange_account', 'pair', 'initial_first_symbol_balance', 'initial_second_symbol_balance', 'current_currency', 'current_currency_balance', 'is_active')
         depth = 1
         
         
