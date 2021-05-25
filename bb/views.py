@@ -346,70 +346,75 @@ class TopUpStrategy(generics.GenericAPIView):
         split = user_strategy_pair.pair.index('/')
         first_symbol = user_strategy_pair.pair[:split]
         second_symbol = user_strategy_pair.pair[split+1:]
-        if user_strategy_pair.current_currency == request.data['currency']:
-            # check account to see if there is enough of the current currency
-            enough = check_account_for_available_balances(user_exchange_account, exchange, request.data['currency'], request.data['amount'])
-            if enough == True:
-                user_strategy_pair.current_currency_balance += request.data['amount']
-                if user_strategy_pair.current_currency == first_symbol:
-                    user_strategy_pair.initial_first_symbol_balance += request.data['amount']
+        if request.data['is_top_up']:
+
+            if user_strategy_pair.current_currency == request.data['currency']:
+                # check account to see if there is enough of the current currency
+                enough = check_account_for_available_balances(user_exchange_account, exchange, request.data['currency'], request.data['amount'])
+                if enough == True:
+                    user_strategy_pair.current_currency_balance += request.data['amount']
+                    if user_strategy_pair.current_currency == first_symbol:
+                        user_strategy_pair.initial_first_symbol_balance += request.data['amount']
+                    else:
+                        user_strategy_pair.initial_second_symbol_balance += request.data['amount']
                 else:
-                    user_strategy_pair.initial_second_symbol_balance += request.data['amount']
+                    # not enough balance in account
+                    return enough
             else:
-                # not enough balance in account
-                return enough
+                # check account to see if there is enough of the selected currency
+                # if there is then buy or sell into the current currency
+                enough = check_account_for_available_balances(user_exchange_account, exchange, request.data['currency'], request.data['amount'])
+                if enough:
+                    if request.data['currency'] == second_symbol:
+                        print('Buying ', first_symbol)
+                        amount = 1
+                        price = request.data['amount']
+                        try:
+                            order = exchange.create_order(user_strategy_pair.pair, 'market', 'buy', amount, price)
+                            if order:
+                                price = exchange.fetch_ticker(user_strategy_pair.pair)
+                                new_order = Orders()
+                                new_order.size_symbol = second_symbol
+                                new_order.filled_price = price['close']
+                                new_order.user_strategy_pair = user_strategy_pair
+                                new_order.user = self.request.user
+                                if exchange.id == 'binance':
+                                    new_order = helpers.binance_buy_order(new_order, order, exchange)
+                                else:
+                                    new_order = helpers.coinbasepro_buy_order(new_order, order)
+                                new_order.save()
+                                update_order(order['id'], exchange, user_strategy_pair)
+                                user_strategy_pair.initial_second_symbol_balance += request.data['amount']
+                        except Exception as e:
+                            print("An exception occurred: ", e)
+                    else:
+                        print('Selling ', second_symbol)
+                        amount = request.data['amount']
+                        try:
+                            order = exchange.create_order(user_strategy_pair.pair, 'market', 'sell', amount)
+                            if order:
+                                
+                                price = exchange.fetch_ticker(user_strategy_pair.pair)
+                                new_order = Orders()
+                                new_order.size_symbol = first_symbol
+                                new_order.filled_price = price['close']
+                                new_order.user_strategy_pair = user_strategy_pair
+                                new_order.user = self.request.user
+                                if exchange.id == 'binance':
+                                    new_order = helpers.binance_sell_order(new_order, order, exchange)
+                                else:
+                                    new_order = helpers.coinbasepro_sell_order(new_order, order)
+                                new_order.save()
+                                update_order(order['id'], exchange, user_strategy_pair)
+                                user_strategy_pair.initial_first_symbol_balance += request.data['amount']
+                        except Exception as e:
+                            print("An exception occurred: ", e)
+                            # send_email.send_daily_email(None, type(e))
+                else:
+                    return enough
         else:
-            # check account to see if there is enough of the selected currency
-            # if there is then buy or sell into the current currency
-            enough = check_account_for_available_balances(user_exchange_account, exchange, request.data['currency'], request.data['amount'])
-            if enough:
-                if request.data['currency'] == second_symbol:
-                    print('Buying ', first_symbol)
-                    amount = 1
-                    price = request.data['amount']
-                    try:
-                        order = exchange.create_order(user_strategy_pair.pair, 'market', 'buy', amount, price)
-                        if order:
-                            price = exchange.fetch_ticker(user_strategy_pair.pair)
-                            new_order = Orders()
-                            new_order.size_symbol = second_symbol
-                            new_order.filled_price = price['close']
-                            new_order.user_strategy_pair = user_strategy_pair
-                            new_order.user = self.request.user
-                            if exchange.id == 'binance':
-                                new_order = helpers.binance_buy_order(new_order, order, exchange)
-                            else:
-                                new_order = helpers.coinbasepro_buy_order(new_order, order)
-                            new_order.save()
-                            update_order(order['id'], exchange, user_strategy_pair)
-                            user_strategy_pair.initial_second_symbol_balance += request.data['amount']
-                    except Exception as e:
-                        print("An exception occurred: ", e)
-                else:
-                    print('Selling ', second_symbol)
-                    amount = request.data['amount']
-                    try:
-                        order = exchange.create_order(user_strategy_pair.pair, 'market', 'sell', amount)
-                        if order:
-                            
-                            price = exchange.fetch_ticker(user_strategy_pair.pair)
-                            new_order = Orders()
-                            new_order.size_symbol = first_symbol
-                            new_order.filled_price = price['close']
-                            new_order.user_strategy_pair = user_strategy_pair
-                            new_order.user = self.request.user
-                            if exchange.id == 'binance':
-                                new_order = helpers.binance_sell_order(new_order, order, exchange)
-                            else:
-                                new_order = helpers.coinbasepro_sell_order(new_order, order)
-                            new_order.save()
-                            update_order(order['id'], exchange, user_strategy_pair)
-                            user_strategy_pair.initial_first_symbol_balance += request.data['amount']
-                    except Exception as e:
-                        print("An exception occurred: ", e)
-                        # send_email.send_daily_email(None, type(e))
-            else:
-                return enough
+            if request.data['currency'] == user_strategy_pair.current_currency:
+                user_strategy_pair.current_currency_balance -= request.data['amount']
         user_strategy_pair.save()
         daily_balance = User_Strategy_Pair_Daily_Balance.objects.filter(user_strategy_pair=user_strategy_pair.id, created_on=dt.date.today()).first()
         daily_balance.is_top_up = True
