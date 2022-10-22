@@ -165,7 +165,7 @@ class ConnectExchange(mixins.CreateModelMixin,
         exchange_object = Exchange.objects.filter(exchange_id=request.data['exchange']).first()
         try:
             account_id = None
-            if request.data['exchange'] == '3cd0857b-5b75-407a-ab21-a3620d45af7a':
+            if exchange_object.name == 'binance':
                 exchange = connect_to_users_exchange(request.data['exchange'], request.data['api_key'], request.data['api_secret'], None)
             else:
                 exchange = connect_to_users_exchange(request.data['exchange'], request.data['api_key'], request.data['api_secret'], request.data['api_password'])
@@ -219,15 +219,18 @@ class ConnectStrategy(mixins.CreateModelMixin,
     def post(self, request, *args, **kwargs):
         request.data['current_currency_balance'] = float(request.data['current_currency_balance'])
         user_exchange_account = User_Exchange_Account.objects.filter(is_active=True, user_exchange_account_id=request.data['user_exchange_account']).first()
+        exchange = Exchange.objects.filter(is_active=True, exchange_id=user_exchange_account.exchange_id).first()
         try:
             if user_exchange_account:
                 
-                if user_exchange_account.exchange_id == '3cd0857b-5b75-407a-ab21-a3620d45af7a':
+                if exchange.name == 'binance':
                     exchange = connect_to_users_exchange(user_exchange_account.exchange_id, user_exchange_account.api_key, user_exchange_account.api_secret, None)
                 else:
                     exchange = connect_to_users_exchange(user_exchange_account.exchange_id, user_exchange_account.api_key, user_exchange_account.api_secret, user_exchange_account.api_password)
 
                 enough = check_account_for_available_balances(user_exchange_account, exchange, request.data['current_currency'], request.data['current_currency_balance'])
+                if enough != True:
+                    return enough
 
         except Exception as error:
             content = {'Error': str(error)}
@@ -342,10 +345,15 @@ class TopUpStrategy(generics.GenericAPIView):
     def post(self, request, *args, **kwargs):
         user_strategy_pair = User_Strategy_Pair.objects.filter(is_active=True, id=request.data['strategy_pair_id']).first()
         user_exchange_account = User_Exchange_Account.objects.filter(is_active=True, user_exchange_account_id=user_strategy_pair.user_exchange_account_id).first()
-        exchange = connect_to_users_exchange(user_exchange_account.exchange_id, user_exchange_account.api_key, user_exchange_account.api_secret, user_exchange_account.api_passphrase)
+        exchange = connect_to_users_exchange(user_exchange_account.exchange_id, user_exchange_account.api_key, user_exchange_account.api_secret)
         split = user_strategy_pair.pair.index('/')
         first_symbol = user_strategy_pair.pair[:split]
         second_symbol = user_strategy_pair.pair[split+1:]
+
+        old_current_amount = user_strategy_pair.current_currency_balance
+        initial_amount = user_strategy_pair.initial_first_symbol_balance if user_strategy_pair.current_currency == first_symbol else user_strategy_pair.initial_second_symbol_balance
+        diff = old_current_amount - initial_amount / initial_amount * 100
+
         if request.data['is_top_up']:
 
             if user_strategy_pair.current_currency == request.data['currency']:
@@ -353,10 +361,16 @@ class TopUpStrategy(generics.GenericAPIView):
                 enough = check_account_for_available_balances(user_exchange_account, exchange, request.data['currency'], request.data['amount'])
                 if enough == True:
                     user_strategy_pair.current_currency_balance += request.data['amount']
+                    current_amount = user_strategy_pair.current_currency_balance
+                    new_initial_amount = 100 * current_amount / diff + 100
+                    price = exchange.fetch_ticker(user_strategy_pair.pair)
+
                     if user_strategy_pair.current_currency == first_symbol:
-                        user_strategy_pair.initial_first_symbol_balance += request.data['amount']
+                        user_strategy_pair.initial_first_symbol_balance = new_initial_amount
+                        user_strategy_pair.initial_second_symbol_balance = user_strategy_pair.initial_first_symbol_balance * price['last']
                     else:
-                        user_strategy_pair.initial_second_symbol_balance += request.data['amount']
+                        user_strategy_pair.initial_second_symbol_balance = new_initial_amount
+                        user_strategy_pair.initial_first_symbol_balance = user_strategy_pair.initial_second_symbol_balance / price['last']
                 else:
                     # not enough balance in account
                     return enough
@@ -414,7 +428,20 @@ class TopUpStrategy(generics.GenericAPIView):
                     return enough
         else:
             if request.data['currency'] == user_strategy_pair.current_currency:
+                
                 user_strategy_pair.current_currency_balance -= request.data['amount']
+
+                current_amount = user_strategy_pair.current_currency_balance
+                new_initial_amount = 100 * current_amount / diff + 100
+
+                price = exchange.fetch_ticker(user_strategy_pair.pair)
+                if user_strategy_pair.current_currency == first_symbol:
+                    user_strategy_pair.initial_first_symbol_balance = new_initial_amount
+                    user_strategy_pair.initial_second_symbol_balance = user_strategy_pair.initial_first_symbol_balance * price
+                else:
+                    user_strategy_pair.initial_second_symbol_balance = new_initial_amount
+                    user_strategy_pair.initial_first_symbol_balance = user_strategy_pair.initial_second_symbol_balance / price
+
         user_strategy_pair.save()
         daily_balance = User_Strategy_Pair_Daily_Balance.objects.filter(user_strategy_pair=user_strategy_pair.id, created_on=dt.date.today()).first()
         daily_balance.is_top_up = True
@@ -479,7 +506,7 @@ class GetGraphData(generics.GenericAPIView):
             return Response("No content", status=status.HTTP_400_BAD_REQUEST)
 
 
-def connect_to_users_exchange(exchange_id, api_key, api_secret, api_passphrase):
+def connect_to_users_exchange(exchange_id, api_key, api_secret, api_passphrase = ''):
     exchange_name = Exchange.objects.filter(exchange_id=exchange_id).first()
     
     try:
