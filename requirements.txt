@@ -9,7 +9,7 @@ async-timeout==3.0.1
 attrs==20.3.0
 backcall==0.2.0
 bleach==3.3.0
-ccxt==1.42.49
+ccxt
 certifi==2020.12.5
 cffi==1.14.5
 chardet==3.0.4
