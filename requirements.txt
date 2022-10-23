@@ -78,6 +78,7 @@ pycares==3.1.1
 pycparser==2.20
 Pygments==2.8.1
 PyJWT==2.0.1
+PyJWT==1.5.2
 pylint==2.7.1
 pylint-django==2.4.2
 pylint-plugin-utils==0.6
