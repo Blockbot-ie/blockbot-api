@@ -28,7 +28,7 @@ SECRET_KEY = 'hit=k4y(&k*&20^0klp*mhu(fx7b2hx6kc*8s(dzo2i6w-g3^^'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['myblockbot-api.herokuapp.com', '127.0.0.1', 'localhost']
+ALLOWED_HOSTS = ['myblockbot-api.herokuapp.com', '127.0.0.1', 'localhost', 'blockbot-api.onrender.com']
 
 SITE_ID = 2
 
@@ -216,4 +216,4 @@ SOCIAL_AUTH_FACEBOOK_PROFILE_EXTRA_PARAMS = {
 }
 
 ACCOUNT_CONFIRM_EMAIL_ON_GET = True
-LOGIN_URL = 'http://www.app.myblockbot.com/login'
+LOGIN_URL = env('LOGIN_URL')
