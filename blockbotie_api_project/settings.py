@@ -95,10 +95,7 @@ WSGI_APPLICATION = 'blockbotie_api_project.wsgi.application'
 CORS_ORIGIN_WHITELIST = (
     'http://localhost:3000',
     'http://localhost:3001',
-    'https://myblockbot-ui.herokuapp.com',
-    'http://www.myblockbot.com',
-    'http://www.app.myblockbot.com',
-    'http://app.myblockbot.com',
+    'https://app-blockbot.onrender.com/'
 )
 
 
@@ -119,8 +116,8 @@ DATABASES = {
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
-EMAIL_HOST_USER = 'blockbotie@gmail.com'
-EMAIL_HOST_PASSWORD = 'sghnpirlorubcesz'
+EMAIL_HOST_USER = env('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
 EMAIL_USE_TLS = True
 
 
